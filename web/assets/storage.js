@@ -4,7 +4,25 @@
   const b64 = data => { let s = ''; for (let i = 0; i < data.length; i += 16384) s += String.fromCharCode(...data.subarray(i, i + 16384)); return btoa(s); };
   const unb64 = value => Uint8Array.from(atob(value), c => c.charCodeAt(0));
   class Workspace {
-    constructor() { this.tasks = []; this.index = {}; this.files = new Map(); this.baseline = new Map(); this.errors = []; this.source = 'sample'; this.directory = null; this.helper = null; }
+    constructor() { this.tasks = []; this.index = {}; this.files = new Map(); this.baseline = new Map(); this.errors = []; this.source = 'sample'; this.directory = null; this.helper = null; this.undoStack = []; this.redoStack = []; this.grouping = false; }
+    snapshot() {
+      const referenced = new Set(this.tasks.flatMap(t => t.images.map(i => i.file)));
+      return { tasks: C.clone(this.tasks), index: C.clone(this.index), files: new Map([...this.files].filter(([path]) => !path.startsWith('images/') || this.baseline.has(path) || referenced.has(path))) };
+    }
+    checkpoint() { if (this.grouping) return; this.undoStack.push(this.snapshot()); if (this.undoStack.length > 30) this.undoStack.shift(); this.redoStack = []; }
+    restore(snapshot) {
+      this.tasks = C.clone(snapshot.tasks); this.index = C.clone(snapshot.index); this.files = new Map(snapshot.files);
+      // A saved file absent from an older snapshot remains an unindexed orphan, not a disk deletion.
+      for (const [path, data] of this.baseline) if (!this.files.has(path)) this.files.set(path, data);
+    }
+    undo() { this.assertWritable(); if (!this.undoStack.length) return false; this.redoStack.push(this.snapshot()); this.restore(this.undoStack.pop()); return true; }
+    redo() { this.assertWritable(); if (!this.redoStack.length) return false; this.undoStack.push(this.snapshot()); this.restore(this.redoStack.pop()); return true; }
+    removeMany(ids) {
+      this.assertWritable(); const wanted = new Set(ids), roots = this.tasks.filter(t => wanted.has(t.id) && !this.tasks.some(p => wanted.has(p.id) && C.descendants(this.tasks, p.id).has(t.id)));
+      if (!roots.length) return [];
+      this.checkpoint(); this.grouping = true;
+      try { return roots.flatMap(t => this.remove(t.id)); } finally { this.grouping = false; }
+    }
     async load(reader, source) {
       const rawIndex = await reader('index.json'); const index = JSON.parse(C.text(rawIndex));
       if (!C.plain(index) || index.schemaVersion !== 1 || !Array.isArray(index.tasks)) throw Error('유효한 대시보드 데이터 폴더가 아닙니다.');
@@ -25,7 +43,7 @@
         results.forEach(r => r.error ? errors.push(r.error) : tasks.push(r.task));
       }
       try { C.validateTree(tasks); } catch (e) { errors.push(e.message); }
-      this.index = index; this.tasks = tasks; this.files = files; this.baseline = new Map(files); this.errors = errors; this.source = source;
+      this.index = index; this.tasks = tasks; this.files = files; this.baseline = new Map(files); this.errors = errors; this.source = source; this.undoStack = []; this.redoStack = [];
       return this;
     }
     body(t) { return t.bodyFile && this.files.has(t.bodyFile) ? C.text(this.files.get(t.bodyFile)) : ''; }
@@ -35,6 +53,7 @@
       this.assertWritable(); const old = this.tasks.find(t => t.id === id); if (!old) throw Error('과제를 찾을 수 없습니다.');
       const edited = C.normalize({ ...C.clone(old), ...changes, id: old.id, schemaVersion: 1 });
       const next = this.tasks.map(t => t.id === id ? edited : t); C.validateTree(next);
+      this.checkpoint();
       if (bodyValues) {
         edited.bodyFile ||= `notes/${edited.id}.md`;
         this.files.set(edited.bodyFile, C.bytes(C.writeBody(this.body(old), bodyValues.description, bodyValues.checklist)));
@@ -45,11 +64,12 @@
     add(parentId = null) {
       this.assertWritable(); const parent = this.tasks.find(t => t.id === parentId); const now = new Date().toISOString();
       const t = C.normalize({ schemaVersion: 1, id: 'TASK-' + crypto.randomUUID().toUpperCase(), parentId, order: C.children(this.tasks, parentId).length, title: parent ? '새 하위 작업' : '새 메인 과제', category: parent?.category || 'personal', status: 'planned', progress: 0, startDate: C.today(), targetEndDate: null, actualEndDate: null, summary: '', owners: parent?.owners || ['나'], tags: [], links: [], milestones: [], logs: [], decisions: [], releases: [], createdAt: now, updatedAt: now });
-      t.bodyFile = `notes/${t.id}.md`; this.tasks.push(t); C.validateTree(this.tasks);
+      t.bodyFile = `notes/${t.id}.md`; C.validateTree([...this.tasks, t]); this.checkpoint(); this.tasks.push(t);
       this.files.set(t.bodyFile, C.bytes(C.writeBody('', '', ''))); this.files.set(`tasks/${t.id}.json`, C.bytes(C.json(t))); this.updateIndex(); return t;
     }
     relocate(id, parentId, beforeId) {
       this.assertWritable(); const copy = C.clone(this.tasks); C.move(copy, id, parentId, beforeId);
+      this.checkpoint();
       for (const t of copy) {
         const old = this.tasks.find(x => x.id === t.id);
         if (old.order !== t.order || old.parentId !== t.parentId) { t.updatedAt = new Date().toISOString(); this.files.set(`tasks/${t.id}.json`, C.bytes(C.json(t))); }
@@ -58,6 +78,7 @@
     }
     remove(id) {
       this.assertWritable(); const task = this.tasks.find(t => t.id === id); if (!task) throw Error('삭제할 과제를 찾을 수 없습니다.');
+      this.checkpoint();
       const removedIds = new Set([id, ...C.descendants(this.tasks, id)]);
       const removed = this.tasks.filter(t => removedIds.has(t.id));
       const parentId = task.parentId; this.tasks = this.tasks.filter(t => !removedIds.has(t.id));

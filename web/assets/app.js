@@ -4,6 +4,43 @@
   let ws = new S.Workspace();
   const ui = { scope: null, query: '', category: 'all', status: 'all', archiveMode: 'active', collapsed: new Set(), view: 'tree', selected: null, draft: null, draftDirty: false, tab: 'overview', preview: false, busy: false, imageUrls: [], addedImages: new Set(), review: null, lastExport: null, dragTask: null };
   const $ = selector => document.querySelector(selector);
+  Object.assign(ui, { scheduleEdit: false, bulkMode: false, checked: new Set() });
+  const themeMedia = window.matchMedia('(prefers-color-scheme: light)');
+  let theme = 'dark';
+  try { theme = localStorage.getItem('dhd-theme') || 'dark'; } catch (_) {}
+  function applyTheme(value) {
+    theme = ['dark', 'light', 'system'].includes(value) ? value : 'dark';
+    document.documentElement.dataset.theme = theme === 'system' ? (themeMedia.matches ? 'light' : 'dark') : theme;
+    $('#themeSelect').value = theme;
+    try { localStorage.setItem('dhd-theme', theme); } catch (_) {}
+  }
+  themeMedia.addEventListener('change', () => { if (theme === 'system') applyTheme(theme); });
+  applyTheme(theme);
+  function foldTask(id) { ui.collapsed.has(id) ? ui.collapsed.delete(id) : ui.collapsed.add(id); render(); }
+  function historyStep(direction) {
+    if (ui.busy || document.querySelector('dialog[open]')) return;
+    guard(() => { if (!ws[direction]()) return; ui.checked.clear(); if (!ws.tasks.some(t => t.id === ui.scope)) ui.scope = null; render(); message(`${direction === 'undo' ? '실행 취소' : '다시 실행'}했습니다. 파일과 Git에 반영하려면 다시 저장하세요.`); });
+  }
+  function updateSelection(rows = orderedRows()) {
+    const visible = new Set(rows.filter(r => r.match).map(r => r.t.id));
+    for (const id of ui.checked) if (!visible.has(id)) ui.checked.delete(id);
+    $('#bulkModeButton').textContent = ui.bulkMode ? '선택 취소' : '선택 삭제';
+    for (const id of ['selectAllLabel', 'selectionCount', 'bulkDeleteButton']) $('#' + id).hidden = !ui.bulkMode;
+    $('#selectionCount').textContent = `${ui.checked.size}개 선택`;
+    $('#bulkDeleteButton').disabled = !ui.checked.size || ws.errors.length > 0;
+    $('#selectAllTasks').checked = visible.size > 0 && ui.checked.size === visible.size;
+    $('#selectAllTasks').indeterminate = ui.checked.size > 0 && ui.checked.size < visible.size;
+    $('#selectAllTasks').disabled = !visible.size;
+    $('#scheduleEditButton').hidden = ui.view !== 'gantt';
+    $('#scheduleEditButton').textContent = ui.scheduleEdit ? '🔓 일정 이동 켜짐 · 눌러 잠그기' : '🔒 일정 이동 잠김';
+    $('#scheduleEditButton').setAttribute('aria-pressed', ui.scheduleEdit);
+  }
+  function selectionBox(t, match) { return ui.bulkMode ? el('input', { type: 'checkbox', class: 'task-check', checked: ui.checked.has(t.id), disabled: !match, 'aria-label': `${t.title} 삭제 선택`, onchange: e => { e.target.checked ? ui.checked.add(t.id) : ui.checked.delete(t.id); render(); } }) : null; }
+  function bulkDelete() {
+    const ids = [...ui.checked], removedIds = new Set(ids.flatMap(id => [id, ...C.descendants(ws.tasks, id)]));
+    if (!ids.length || !confirm(`선택한 ${ids.length}개 과제와 하위 작업을 포함해 총 ${removedIds.size}개를 삭제할까요?\n접혀 있거나 필터로 숨겨진 하위 작업도 포함됩니다. 실행 취소로 복구할 수 있습니다. 기존 파일은 보존됩니다.`)) return;
+    guard(() => { ws.removeMany(ids); if (removedIds.has(ui.scope)) ui.scope = null; ui.checked.clear(); ui.bulkMode = false; render(); message(`${removedIds.size}개 과제를 삭제했습니다. 실행 취소로 복구할 수 있습니다. 파일 저장이 필요합니다.`); });
+  }
   function el(tag, attrs = {}, ...children) {
     const node = document.createElement(tag);
     for (const [key, value] of Object.entries(attrs)) {
@@ -26,7 +63,7 @@
     const matches = new Set(direct.map(t => t.id)), included = new Set(matches), map = new Map(ws.tasks.map(t => [t.id, t]));
     for (const t of direct) { let p = t.parentId; const seen = new Set(); while (p && map.has(p) && !seen.has(p)) { seen.add(p); included.add(p); p = map.get(p).parentId; } }
     const rows = [], visited = new Set(), filtering = ui.query || ui.status !== 'all' || ui.category !== 'all';
-    function visit(t, depth) { if (visited.has(t.id) || !included.has(t.id)) return; visited.add(t.id); rows.push({ t, depth, match: matches.has(t.id) }); if (!ui.collapsed.has(t.id) || filtering) for (const ch of C.children(ws.tasks, t.id)) visit(ch, depth + 1); }
+    function visit(t, depth) { if (visited.has(t.id) || !included.has(t.id)) return; visited.add(t.id); rows.push({ t, depth, match: matches.has(t.id) }); if (!ui.collapsed.has(t.id)) for (const ch of C.children(ws.tasks, t.id)) visit(ch, depth + 1); }
     if (ui.scope && map.has(ui.scope)) visit(map.get(ui.scope), 0); else for (const t of C.children(ws.tasks)) visit(t, 0);
     for (const t of direct) if (!visited.has(t.id) && (!t.parentId || !map.has(t.parentId))) visit(t, 0);
     return rows;
@@ -53,13 +90,16 @@
   function renderTree(rows) {
     const archived = archivedIds();
     const header = el('div', { class: 'task-row header' }, el('span', { text: '과제 / 작업' }), el('span', { text: '상태' }), el('span', { text: '진행률' }), el('span', { text: '목표일' }), el('span', { text: '작업' }));
-    const nodes = rows.map(({ t, depth }) => {
+    updateSelection(rows);
+    const nodes = rows.map(({ t, depth, match }) => {
       const kids = C.children(ws.tasks, t.id), pct = C.progress(ws.tasks, t);
       const select = el('select', { class: `row-status status-${t.status}`, 'aria-label': `${t.title} 상태`, onchange: e => guard(() => { const changes = { status: e.target.value }; if (changes.status === 'completed') changes.progress = 100; ws.record(t.id, changes); render(); }) }, ...Object.entries(C.statuses).map(([v, label]) => el('option', { value: v, selected: v === t.status, text: label })));
       const progress = el('div', { class: 'row-progress' }, el('div', { class: 'progress-track', role: 'progressbar', 'aria-label': `${t.title} 진행률`, 'aria-valuenow': pct, 'aria-valuemin': 0, 'aria-valuemax': 100 }, el('div', { class: 'progress-fill' })), el('span', { text: `${pct}%` })); progress.querySelector('.progress-fill').style.width = pct + '%';
       const row = el('div', { class: 'task-row' + (!depth ? ' root-row' : '') + (archived.has(t.id) ? ' archived' : ''), 'data-id': t.id },
         el('div', { class: 'task-name' }, el('span', { class: 'drag-handle', draggable: 'true', title: '드래그하여 이동', 'aria-hidden': 'true' }, '⠿'), el('button', { class: 'fold', 'aria-label': `${t.title} ${ui.collapsed.has(t.id) ? '펼치기' : '접기'}`, 'aria-expanded': !ui.collapsed.has(t.id), disabled: !kids.length, onclick: () => { ui.collapsed.has(t.id) ? ui.collapsed.delete(t.id) : ui.collapsed.add(t.id); renderTree(orderedRows()); } }, kids.length ? (ui.collapsed.has(t.id) ? '▸' : '▾') : '·'), el('button', { class: 'task-open', onclick: () => openTask(t.id) }, t.title), kids.length ? el('span', { class: 'child-count', text: kids.length }) : null), select, progress, el('time', { class: 'row-date', text: t.targetEndDate || '미정' }), el('div', { class: 'row-actions' }, el('button', { title: '위로 이동', 'aria-label': `${t.title} 위로 이동`, onclick: () => stepMove(t.id, -1) }, '↑'), el('button', { title: '아래로 이동', 'aria-label': `${t.title} 아래로 이동`, onclick: () => stepMove(t.id, 1) }, '↓'), el('button', { title: '하위 작업 추가', 'aria-label': `${t.title} 하위 작업 추가`, onclick: () => addTask(t.id) }, '＋')));
       row.style.setProperty('--depth', Math.min(depth, 12));
+      const checkbox = selectionBox(t, match); if (checkbox) row.querySelector('.task-name').prepend(checkbox);
+      row.querySelector('.fold').addEventListener('click', () => render());
       row.querySelector('.drag-handle').addEventListener('dragstart', e => { ui.dragTask = t.id; e.dataTransfer.setData('text/plain', t.id); e.dataTransfer.effectAllowed = 'move'; });
       row.querySelector('.drag-handle').addEventListener('dragend', () => ui.dragTask = null);
       row.addEventListener('dragover', e => { if (ui.query || ui.category !== 'all' || ui.status !== 'all') return; e.preventDefault(); const y = (e.clientY - row.getBoundingClientRect().top) / row.getBoundingClientRect().height; row.classList.remove('drop-before', 'drop-after', 'drop-inside'); row.dataset.drop = y < .25 ? 'before' : y > .75 ? 'after' : 'inside'; row.classList.add('drop-' + row.dataset.drop); });
@@ -98,13 +138,29 @@
     const showTip = event => { if (pointerId !== null) return; const box = lane.getBoundingClientRect(); tooltip.hidden = false; tooltip.style.left = Math.max(4, Math.min(event.clientX - box.left + 10, box.width - Math.min(320, box.width * .75))) + 'px'; };
     bar.addEventListener('pointerenter', showTip); bar.addEventListener('pointermove', event => {
       if (pointerId === null) return showTip(event);
-      delta = Math.round((event.clientX - startX) / Math.max(1, lane.clientWidth) * range.days);
+      if (event.pointerId !== pointerId) return;
+      delta = Math.abs(event.clientX - startX) < 10 ? 0 : Math.round((event.clientX - startX) / Math.max(1, lane.clientWidth) * range.days);
       bar.style.left = pos(C.iso(C.day(task.startDate) + delta)) + '%';
     });
     bar.addEventListener('pointerleave', () => { if (pointerId === null) tooltip.hidden = true; });
-    bar.addEventListener('pointerdown', event => { if (event.button !== 0) return; event.preventDefault(); startX = event.clientX; delta = 0; pointerId = event.pointerId; tooltip.hidden = true; bar.classList.add('dragging'); try { bar.setPointerCapture?.(pointerId); } catch (_) {} });
-    const finish = event => { if (pointerId !== event.pointerId) return; try { bar.releasePointerCapture?.(pointerId); } catch (_) {} pointerId = null; bar.classList.remove('dragging'); if (event.type === 'pointerup' && delta) { try { const shifted = C.shiftSchedule(task, delta); ws.record(task.id, { startDate: shifted.startDate, targetEndDate: shifted.targetEndDate, actualEndDate: shifted.actualEndDate }); render(); message(`${task.title} 일정을 ${Math.abs(delta)}일 ${delta > 0 ? '뒤로' : '앞으로'} 이동했습니다. 마일스톤·릴리즈 날짜는 유지했습니다.`); } catch (error) { render(); message(error.message, true); } } else renderGantt(orderedRows()); };
+    bar.addEventListener('pointerdown', event => { if (!ui.scheduleEdit || event.button !== 0 || pointerId !== null) return; event.preventDefault(); startX = event.clientX; delta = 0; pointerId = event.pointerId; tooltip.hidden = true; bar.classList.add('dragging'); try { bar.setPointerCapture?.(pointerId); } catch (_) {} });
+    const finish = event => {
+      if (pointerId !== event.pointerId) return;
+      try { bar.releasePointerCapture?.(pointerId); } catch (_) {} pointerId = null; bar.classList.remove('dragging');
+      if (event.type === 'pointerup' && delta) {
+        try {
+          const shifted = C.shiftSchedule(task, delta);
+          ui.scheduleEdit = false;
+          if (confirm(`${task.title} 일정을 변경할까요?\n시작일: ${task.startDate} → ${shifted.startDate}\n목표 종료일: ${task.targetEndDate || '미정'} → ${shifted.targetEndDate || '미정'}\n실제 종료일: ${task.actualEndDate || '미정'} → ${shifted.actualEndDate || '미정'}\n마일스톤·릴리즈·하위 과제 일정은 유지됩니다.`)) {
+            ws.record(task.id, { startDate: shifted.startDate, targetEndDate: shifted.targetEndDate, actualEndDate: shifted.actualEndDate });
+            message(`${task.title} 일정을 변경했습니다. 실행 취소로 되돌릴 수 있습니다. 일정 이동은 다시 잠겼습니다.`);
+          } else message('일정 변경을 취소했습니다. 일정 이동은 다시 잠겼습니다.');
+        } catch (error) { message(error.message, true); }
+      }
+      render();
+    };
     bar.addEventListener('pointerup', finish); bar.addEventListener('pointercancel', finish);
+    bar.addEventListener('lostpointercapture', event => { if (pointerId === event.pointerId) { pointerId = null; render(); } });
   }
   function renderGantt(rows) {
     if (!rows.length) return $('#gantt').replaceChildren(el('div', { class: 'empty', text: '표시할 일정이 없습니다.' }));
@@ -113,7 +169,7 @@
     const scale = el('div', { class: 'gantt-scale' });
     for (const m of range.months) { const label = el('span', { class: 'gantt-month', text: m.label }); label.style.left = `${(m.start - range.start) / range.days * 100}%`; label.style.width = `${m.days / range.days * 100}%`; scale.append(label); }
     const table = el('div', { class: 'gantt-table' }, el('div', { class: 'gantt-row' }, el('div', { class: 'gantt-label', text: '과제 · ● 마일스톤  ◆ 릴리즈' }), scale));
-    for (const { t, depth } of rows) {
+    for (const { t, depth, match } of rows) {
       const lane = el('div', { class: 'gantt-lane' });
       for (const m of range.months) { const line = el('span', { class: 'gantt-grid' }); line.style.left = (m.start - range.start) / range.days * 100 + '%'; lane.append(line); }
       const end = C.endDate(t), summary = latestStatusSummary(t), tooltip = el('div', { class: 'gantt-tooltip', role: 'tooltip', text: summary, hidden: true });
@@ -122,8 +178,12 @@
       const now = pos(C.today()); if (now >= 0 && now <= 100) { const line = el('span', { class: 'today-line', title: '오늘' }); line.style.left = now + '%'; lane.append(line); }
       const handle = el('span', { class: 'drag-handle', draggable: true, title: '위·아래로 드래그하여 순서 변경', 'aria-hidden': true }, '⠿');
       const label = el('div', { class: 'gantt-label gantt-task-label' }, handle, el('button', { class: 'task-open', text: t.title, onclick: () => openTask(t.id) })); label.style.setProperty('--depth', depth); const row = el('div', { class: 'gantt-row', 'data-id': t.id }, label, lane); installGanttOrder(row, t, handle); table.append(row);
+      const kids = C.children(ws.tasks, t.id);
+      label.insertBefore(el('button', { class: 'fold', 'aria-label': `${t.title} ${ui.collapsed.has(t.id) ? '펼치기' : '접기'}`, 'aria-expanded': !ui.collapsed.has(t.id), disabled: !kids.length, onclick: () => foldTask(t.id) }, kids.length ? (ui.collapsed.has(t.id) ? '▸' : '▾') : '·'), label.querySelector('.task-open'));
+      const checkbox = selectionBox(t, match); if (checkbox) label.prepend(checkbox);
     }
     $('#gantt').replaceChildren(table);
+    $('#gantt').classList.toggle('schedule-edit', ui.scheduleEdit);
   }
   function renderBottom() {
     const hidden = archivedIds(); const active = ws.tasks.filter(t => !hidden.has(t.id));
@@ -133,6 +193,8 @@
     renderItems('#upcoming', upcoming, '◇'); renderItems('#activity', logs, '↳');
   }
   function updateSaveState() {
+    $('#undoButton').disabled = ui.busy || !ws.undoStack.length || ws.errors.length > 0;
+    $('#redoButton').disabled = ui.busy || !ws.redoStack.length || ws.errors.length > 0;
     $('main').inert = ui.busy; $('.sidebar').inert = ui.busy;
     const n = ws.changed().size; $('#saveState').textContent = ui.busy ? '처리 중…' : n ? `저장할 파일 ${n}개` : '변경 없음'; $('#saveState').classList.toggle('dirty', n > 0);
     $('#saveButton').disabled = ui.busy || !n || !(ws.directory || ws.helper) || ws.errors.length > 0;
@@ -315,10 +377,19 @@
   }
   $('#allTasks').addEventListener('click', () => { ui.scope = null; render(); });
   $('#sidebarAdd').addEventListener('click', () => addTask()); $('#newTaskButton').addEventListener('click', () => addTask());
-  $('#search').addEventListener('input', e => { ui.query = e.target.value.toLowerCase().trim(); const rows = orderedRows(); renderTree(rows); renderGantt(rows); });
+  $('#search').addEventListener('input', e => { ui.query = e.target.value.toLowerCase().trim(); ui.collapsed.clear(); const rows = orderedRows(); renderTree(rows); renderGantt(rows); });
   for (const [id, key] of [['category', 'category'], ['status', 'status']]) $('#' + id).addEventListener('change', e => { ui[key] = e.target.value; render(); });
   $('#archiveMode').addEventListener('change', e => { ui.archiveMode = e.target.value; ui.scope = null; render(); });
   $('#expandButton').addEventListener('click', () => { ui.collapsed.clear(); render(); });
+  $('#collapseButton').addEventListener('click', () => { ui.collapsed = new Set(ws.tasks.filter(t => C.children(ws.tasks, t.id).length).map(t => t.id)); render(); message('하위 과제를 모두 접었습니다.'); });
+  $('#undoButton').addEventListener('click', () => historyStep('undo')); $('#redoButton').addEventListener('click', () => historyStep('redo'));
+  $('#themeSelect').addEventListener('change', e => applyTheme(e.target.value));
+  $('#bulkModeButton').addEventListener('click', () => { ui.bulkMode = !ui.bulkMode; ui.checked.clear(); render(); });
+  $('#bulkDeleteButton').addEventListener('click', bulkDelete);
+  $('#selectAllTasks').addEventListener('change', e => { ui.checked = new Set(e.target.checked ? orderedRows().filter(r => r.match).map(r => r.t.id) : []); render(); });
+  $('#scheduleEditButton').addEventListener('click', () => { ui.scheduleEdit = !ui.scheduleEdit; render(); message(ui.scheduleEdit ? '막대를 끌고 손을 떼면 변경 날짜를 확인합니다. 확인 후 자동으로 잠깁니다.' : '일정 이동을 잠갔습니다. 터치로 스크롤할 수 있습니다.'); });
+  document.addEventListener('keydown', e => { if (!(e.ctrlKey || e.metaKey) || e.altKey || e.target.closest('input,textarea,select,[contenteditable=true]') || document.querySelector('dialog[open]')) return; const key = e.key.toLowerCase(); if (key === 'z' || key === 'y') { e.preventDefault(); historyStep(key === 'y' || e.shiftKey ? 'redo' : 'undo'); } });
+  for (const view of ['tree', 'gantt']) $('#' + view + 'View').addEventListener('click', () => { ui.view = view; ui.scheduleEdit = false; render(); });
   for (const view of ['tree', 'gantt']) $('#' + view + 'View').addEventListener('click', () => { ui.view = view; $('#tree').hidden = view !== 'tree'; $('#gantt').hidden = view !== 'gantt'; for (const name of ['tree', 'gantt']) { $('#' + name + 'View').classList.toggle('active', name === view); $('#' + name + 'View').setAttribute('aria-pressed', name === view); } });
   $('#taskTabs').addEventListener('click', e => { const tab = e.target.closest('[data-tab]'); if (tab) { ui.tab = tab.dataset.tab; renderDetail(); } });
   $('#taskForm').addEventListener('submit', e => { e.preventDefault(); applyDraft(); });

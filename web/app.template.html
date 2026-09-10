@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="color-scheme" content="dark">
+  <meta name="color-scheme" content="dark light">
   <meta name="referrer" content="no-referrer">
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Crect width='40' height='40' rx='10' fill='%237c8cff'/%3E%3Cpath d='M10 12h8v8h-8zm12 0h8v8h-8zM10 24h8v5h-8zm12 0h8v5h-8z' fill='white'/%3E%3C/svg%3E">
   <title>개발 작업실 · Development Workspace</title>
@@ -25,13 +25,15 @@
       <div class="page-heading"><div><div class="eyebrow">MAKE PROGRESS, KEEP THE STORY.</div><h1 id="pageTitle">진행 중인 일, 한눈에.</h1><p>과제를 나누고, 일정을 맞추고, 개발의 흐름을 기록하세요.</p></div><button id="newTaskButton" class="primary">＋ 새 메인 과제</button></div>
       <div class="mobile-tools"><button id="mobileAllTasks">전체 과제</button><button id="mobileFolderButton">작업 폴더 열기</button></div>
       <div id="notice" class="notice" role="status" aria-live="polite"></div>
+      <div class="edit-tools" aria-label="편집 도구"><button id="undoButton" disabled title="Ctrl+Z">↶ 실행 취소</button><button id="redoButton" disabled title="Ctrl+Shift+Z / Ctrl+Y">↷ 다시 실행</button><span class="spacer"></span><label>테마 <select id="themeSelect" aria-label="화면 테마"><option value="dark">다크</option><option value="light">라이트</option><option value="system">시스템 설정</option></select></label></div>
       <section id="kpis" class="kpis" aria-label="작업 요약"></section>
       <section class="work-panel">
-        <div class="viewbar"><div class="views"><button id="treeView" aria-pressed="true" class="active">☷ 과제 목록</button><button id="ganttView" aria-pressed="false">▥ 간트 일정</button></div><div class="viewbar-right"><span id="resultCount"></span><button id="expandButton" class="subtle">모두 펼치기</button></div></div>
+        <div class="viewbar"><div class="views"><button id="treeView" aria-pressed="true" class="active">☷ 과제 목록</button><button id="ganttView" aria-pressed="false">▥ 간트 일정</button></div><div class="viewbar-right"><span id="resultCount"></span><button id="expandButton" class="subtle">모두 펼치기</button><button id="collapseButton" class="subtle">모두 접기</button></div></div>
+        <div class="edit-tools panel-tools"><button id="bulkModeButton">선택 삭제</button><label id="selectAllLabel" hidden><input type="checkbox" id="selectAllTasks"> 표시된 과제 전체 선택</label><span id="selectionCount" hidden></span><button id="bulkDeleteButton" class="danger" hidden disabled>선택한 과제 삭제</button><button id="scheduleEditButton" aria-pressed="false" hidden>🔒 일정 이동 잠김</button></div>
         <div class="filterbar"><label class="search"><span>⌕</span><input id="search" type="search" placeholder="과제명, 내용, 태그 검색" aria-label="과제 검색"></label><select id="category" aria-label="분류 필터"><option value="all">모든 분류</option><option value="assigned">수명 업무</option><option value="personal">개인 개발</option><option value="project">프로젝트</option></select><select id="status" aria-label="상태 필터"><option value="all">모든 상태</option><option value="planned">예정</option><option value="in_progress">진행 중</option><option value="blocked">차단됨</option><option value="on_hold">보류</option><option value="completed">완료</option><option value="cancelled">취소</option></select><select id="archiveMode" aria-label="보관 과제 필터"><option value="active">진행 과제만</option><option value="archived">보관된 과제만</option><option value="all">전체 과제</option></select></div>
         <div id="tree" class="tree" aria-label="계층별 과제 목록"></div>
         <div id="gantt" class="gantt" aria-label="간트 일정" hidden></div>
-        <div class="panel-footer"><span id="treeHint">목록: ⠿ 순서/계층 이동 · 간트: 막대를 좌우로 끌어 일정 이동</span><span>진행률은 하위 작업에서 자동 집계</span></div>
+        <div class="panel-footer"><span id="treeHint">⠿ 순서 이동 · ▾ 하위 과제 접기 · 간트 일정은 이동 잠금 해제 후 확인하여 적용</span><span>진행률은 하위 작업에서 자동 집계</span></div>
       </section>
       <section class="bottom-grid"><div class="small-panel"><div class="section-title"><h2>다가오는 마일스톤</h2><span>UP NEXT</span></div><div id="upcoming"></div></div><div class="small-panel"><div class="section-title"><h2>최근 개발 기록</h2><span>ACTIVITY</span></div><div id="activity"></div></div></section>
       <details id="errorsPanel" class="errors-panel" hidden><summary>불러오기 오류 · 정상 과제는 계속 조회할 수 있습니다</summary><ul id="errors"></ul></details>
