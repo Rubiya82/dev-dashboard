@@ -5,6 +5,7 @@ HTML/CSS/JavaScript만으로 동작하며 서버·npm·CDN이 필요하지 않�
 
 ## 바로 사용하기
 
+- 회사 PC/Codex에서 개발 이어가기: [인수인계 문서](docs/HANDOFF.md)
 - 공개 사이트: https://rubiya82.github.io/dev-dashboard/
 - 로컬 실행: 저장소를 내려받고 **루트의 index.html을 Edge/Chrome에서 더블클릭**합니다.
 - 실제 파일 편집: **작업 폴더 열기** → 저장소 루트 또는 web/data 선택 → 폴더 읽기/쓰기 승인.
