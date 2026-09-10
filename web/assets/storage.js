@@ -56,6 +56,20 @@
       }
       this.tasks = copy; this.updateIndex();
     }
+    remove(id) {
+      this.assertWritable(); const task = this.tasks.find(t => t.id === id); if (!task) throw Error('삭제할 과제를 찾을 수 없습니다.');
+      const removedIds = new Set([id, ...C.descendants(this.tasks, id)]);
+      const removed = this.tasks.filter(t => removedIds.has(t.id));
+      const parentId = task.parentId; this.tasks = this.tasks.filter(t => !removedIds.has(t.id));
+      C.children(this.tasks, parentId).forEach((sibling, order) => {
+        if (sibling.order !== order) { sibling.order = order; sibling.updatedAt = new Date().toISOString(); this.files.set(`tasks/${sibling.id}.json`, C.bytes(C.json(sibling))); }
+      });
+      // Existing content remains as an unindexed Git-recoverable orphan. Only never-saved files are discarded.
+      for (const item of removed) for (const path of [`tasks/${item.id}.json`, item.bodyFile, ...(item.images || []).map(image => image.file)].filter(Boolean)) {
+        if (this.baseline.has(path)) this.files.set(path, this.baseline.get(path)); else this.files.delete(path);
+      }
+      this.updateIndex(); return removed;
+    }
     updateIndex() { this.index = C.indexDocument(this.index, this.tasks); this.files.set('index.json', C.bytes(C.json(this.index))); }
     async image(task, file) {
       this.assertWritable();

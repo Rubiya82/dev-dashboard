@@ -92,6 +92,12 @@
     t.parentId = parentId; list.splice(index < 0 ? list.length : index, 0, t); list.forEach((x, i) => x.order = i); validateTree(tasks);
   }
   function endDate(task) { return task.status === 'completed' && task.actualEndDate ? task.actualEndDate : task.targetEndDate; }
+  function shiftSchedule(task, days) {
+    if (!Number.isInteger(days)) throw Error('이동 일수는 정수여야 합니다.');
+    const shifted = clone(task);
+    for (const key of ['startDate', 'targetEndDate', 'actualEndDate']) if (shifted[key]) shifted[key] = iso(day(shifted[key]) + days);
+    validateTask(shifted); return shifted;
+  }
   function timeline(tasks) {
     const dates = tasks.flatMap(t => [t.startDate, endDate(t), ...t.milestones.map(m => m.date), ...t.releases.map(r => r.releaseDate)]).map(day).filter(v => v !== null);
     const first = new Date((dates.length ? Math.min(...dates) : day(today())) * DAY);
@@ -136,5 +142,5 @@
     return new Blob([...chunks, ...directory, end], { type: 'application/zip' });
   }
   function equal(a, b) { return a === null || b === null ? a === b : a.length === b.length && a.every((v, i) => v === b[i]); }
-  scope.DHD = Object.freeze({ categories, statuses, DAY, clone, json, bytes, text, plain, day, today, iso, safePath, validateTask, normalize, validateTree, children, descendants, progress, move, endDate, timeline, indexDocument, parseBody, writeBody, crc32, zip, equal });
+  scope.DHD = Object.freeze({ categories, statuses, DAY, clone, json, bytes, text, plain, day, today, iso, safePath, validateTask, normalize, validateTree, children, descendants, progress, move, endDate, shiftSchedule, timeline, indexDocument, parseBody, writeBody, crc32, zip, equal });
 })(globalThis);

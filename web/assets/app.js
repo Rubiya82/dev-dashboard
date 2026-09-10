@@ -2,7 +2,7 @@
   'use strict';
   const C = window.DHD, S = window.DHDStorage, config = window.DHD_CONFIG;
   let ws = new S.Workspace();
-  const ui = { scope: null, query: '', category: 'all', status: 'all', archived: false, collapsed: new Set(), view: 'tree', selected: null, draft: null, draftDirty: false, tab: 'overview', preview: false, busy: false, imageUrls: [], addedImages: new Set(), review: null, lastExport: null };
+  const ui = { scope: null, query: '', category: 'all', status: 'all', archiveMode: 'active', collapsed: new Set(), view: 'tree', selected: null, draft: null, draftDirty: false, tab: 'overview', preview: false, busy: false, imageUrls: [], addedImages: new Set(), review: null, lastExport: null, dragTask: null };
   const $ = selector => document.querySelector(selector);
   function el(tag, attrs = {}, ...children) {
     const node = document.createElement(tag);
@@ -22,7 +22,7 @@
   function orderedRows() {
     const scopeIds = ui.scope ? new Set([ui.scope, ...C.descendants(ws.tasks, ui.scope)]) : new Set(ws.tasks.map(t => t.id));
     const hidden = archivedIds();
-    const direct = ws.tasks.filter(t => scopeIds.has(t.id) && (ui.archived || !hidden.has(t.id)) && (ui.category === 'all' || t.category === ui.category) && (ui.status === 'all' || t.status === ui.status) && (!ui.query || `${t.title} ${t.summary} ${(t.tags || []).join(' ')}`.toLowerCase().includes(ui.query)));
+    const direct = ws.tasks.filter(t => scopeIds.has(t.id) && (ui.archiveMode === 'all' || (ui.archiveMode === 'archived' ? hidden.has(t.id) : !hidden.has(t.id))) && (ui.category === 'all' || t.category === ui.category) && (ui.status === 'all' || t.status === ui.status) && (!ui.query || `${t.title} ${t.summary} ${(t.tags || []).join(' ')}`.toLowerCase().includes(ui.query)));
     const matches = new Set(direct.map(t => t.id)), included = new Set(matches), map = new Map(ws.tasks.map(t => [t.id, t]));
     for (const t of direct) { let p = t.parentId; const seen = new Set(); while (p && map.has(p) && !seen.has(p)) { seen.add(p); included.add(p); p = map.get(p).parentId; } }
     const rows = [], visited = new Set(), filtering = ui.query || ui.status !== 'all' || ui.category !== 'all';
@@ -44,22 +44,24 @@
   }
   function renderKpis() {
     const hidden = archivedIds(), scopeIds = ui.scope ? new Set([ui.scope, ...C.descendants(ws.tasks, ui.scope)]) : null;
-    const active = ws.tasks.filter(t => !hidden.has(t.id) && (!scopeIds || scopeIds.has(t.id)));
-    const roots = active.filter(t => !t.parentId), leaves = active.filter(t => !active.some(x => x.parentId === t.id));
+    const active = ws.tasks.filter(t => (ui.archiveMode === 'all' || (ui.archiveMode === 'archived' ? hidden.has(t.id) : !hidden.has(t.id))) && (!scopeIds || scopeIds.has(t.id)));
+    const roots = active.filter(t => !t.parentId || !active.some(parent => parent.id === t.parentId)), leaves = active.filter(t => !active.some(x => x.parentId === t.id));
     const total = leaves.length ? Math.round(leaves.reduce((sum, t) => sum + t.progress, 0) / leaves.length) : 0;
     const stats = [['메인 과제', roots.length, `하위 작업 ${active.length - roots.length}개`, '▦'], ['진행 중', active.filter(t => t.status === 'in_progress').length, '현재 집중하고 있는 작업', '↗'], ['완료한 작업', active.filter(t => t.status === 'completed').length, `전체 ${active.length}개 작업 중`, '✓'], ['전체 진행률', `${total}%`, '말단 작업 기준 평균', '◔']];
     $('#kpis').replaceChildren(...stats.map(([label, value, detail, icon]) => el('article', { class: 'kpi' }, el('div', { class: 'kpi-top' }, label, el('span', { class: 'kpi-icon', text: icon })), el('strong', { text: value }), el('small', { text: detail }))));
   }
   function renderTree(rows) {
+    const archived = archivedIds();
     const header = el('div', { class: 'task-row header' }, el('span', { text: '과제 / 작업' }), el('span', { text: '상태' }), el('span', { text: '진행률' }), el('span', { text: '목표일' }), el('span', { text: '작업' }));
     const nodes = rows.map(({ t, depth }) => {
       const kids = C.children(ws.tasks, t.id), pct = C.progress(ws.tasks, t);
-      const select = el('select', { class: `row-status status-${t.status}`, 'aria-label': `${t.title} 상태`, onchange: e => guard(() => { const changes = { status: e.target.value }; if (changes.status === 'completed') { changes.progress = 100; changes.actualEndDate = C.today() < t.startDate ? t.startDate : C.today(); } else if (t.status === 'completed') changes.actualEndDate = null; ws.record(t.id, changes); render(); }) }, ...Object.entries(C.statuses).map(([v, label]) => el('option', { value: v, selected: v === t.status, text: label })));
+      const select = el('select', { class: `row-status status-${t.status}`, 'aria-label': `${t.title} 상태`, onchange: e => guard(() => { const changes = { status: e.target.value }; if (changes.status === 'completed') changes.progress = 100; ws.record(t.id, changes); render(); }) }, ...Object.entries(C.statuses).map(([v, label]) => el('option', { value: v, selected: v === t.status, text: label })));
       const progress = el('div', { class: 'row-progress' }, el('div', { class: 'progress-track', role: 'progressbar', 'aria-label': `${t.title} 진행률`, 'aria-valuenow': pct, 'aria-valuemin': 0, 'aria-valuemax': 100 }, el('div', { class: 'progress-fill' })), el('span', { text: `${pct}%` })); progress.querySelector('.progress-fill').style.width = pct + '%';
-      const row = el('div', { class: 'task-row' + (!depth ? ' root-row' : '') + (t.archived ? ' archived' : ''), 'data-id': t.id },
+      const row = el('div', { class: 'task-row' + (!depth ? ' root-row' : '') + (archived.has(t.id) ? ' archived' : ''), 'data-id': t.id },
         el('div', { class: 'task-name' }, el('span', { class: 'drag-handle', draggable: 'true', title: '드래그하여 이동', 'aria-hidden': 'true' }, '⠿'), el('button', { class: 'fold', 'aria-label': `${t.title} ${ui.collapsed.has(t.id) ? '펼치기' : '접기'}`, 'aria-expanded': !ui.collapsed.has(t.id), disabled: !kids.length, onclick: () => { ui.collapsed.has(t.id) ? ui.collapsed.delete(t.id) : ui.collapsed.add(t.id); renderTree(orderedRows()); } }, kids.length ? (ui.collapsed.has(t.id) ? '▸' : '▾') : '·'), el('button', { class: 'task-open', onclick: () => openTask(t.id) }, t.title), kids.length ? el('span', { class: 'child-count', text: kids.length }) : null), select, progress, el('time', { class: 'row-date', text: t.targetEndDate || '미정' }), el('div', { class: 'row-actions' }, el('button', { title: '위로 이동', 'aria-label': `${t.title} 위로 이동`, onclick: () => stepMove(t.id, -1) }, '↑'), el('button', { title: '아래로 이동', 'aria-label': `${t.title} 아래로 이동`, onclick: () => stepMove(t.id, 1) }, '↓'), el('button', { title: '하위 작업 추가', 'aria-label': `${t.title} 하위 작업 추가`, onclick: () => addTask(t.id) }, '＋')));
       row.style.setProperty('--depth', Math.min(depth, 12));
-      row.querySelector('.drag-handle').addEventListener('dragstart', e => { e.dataTransfer.setData('text/plain', t.id); e.dataTransfer.effectAllowed = 'move'; });
+      row.querySelector('.drag-handle').addEventListener('dragstart', e => { ui.dragTask = t.id; e.dataTransfer.setData('text/plain', t.id); e.dataTransfer.effectAllowed = 'move'; });
+      row.querySelector('.drag-handle').addEventListener('dragend', () => ui.dragTask = null);
       row.addEventListener('dragover', e => { if (ui.query || ui.category !== 'all' || ui.status !== 'all') return; e.preventDefault(); const y = (e.clientY - row.getBoundingClientRect().top) / row.getBoundingClientRect().height; row.classList.remove('drop-before', 'drop-after', 'drop-inside'); row.dataset.drop = y < .25 ? 'before' : y > .75 ? 'after' : 'inside'; row.classList.add('drop-' + row.dataset.drop); });
       row.addEventListener('dragleave', () => row.classList.remove('drop-before', 'drop-after', 'drop-inside'));
       row.addEventListener('drop', e => { e.preventDefault(); const id = e.dataTransfer.getData('text/plain'); if (!ws.tasks.some(x => x.id === id) || id === t.id) return; guard(() => { const siblings = C.children(ws.tasks, t.parentId); const before = row.dataset.drop === 'before' ? t.id : siblings[siblings.findIndex(x => x.id === t.id) + 1]?.id; ws.relocate(id, row.dataset.drop === 'inside' ? t.id : t.parentId, row.dataset.drop === 'inside' ? null : before); ui.collapsed.delete(t.id); render(); }); });
@@ -69,6 +71,41 @@
     $('#resultCount').textContent = `${rows.length}개 표시`;
   }
   function stepMove(id, delta) { guard(() => { const t = ws.tasks.find(t => t.id === id), siblings = C.children(ws.tasks, t.parentId); const idx = siblings.findIndex(t => t.id === id); if (idx + delta < 0 || idx + delta >= siblings.length) return; const before = delta < 0 ? siblings[idx - 1]?.id : siblings[idx + 2]?.id; ws.relocate(id, t.parentId, before); render(); }); }
+  function canReorder() { return !ui.query && ui.category === 'all' && ui.status === 'all' && ui.archiveMode === 'active'; }
+  function latestStatusSummary(t) {
+    const domainItems = [
+      ...t.logs.map(item => ({ at: item.at, kind: '개발 로그', title: item.title, detail: item.content })),
+      ...t.decisions.map(item => ({ at: item.date, kind: '의사결정', title: item.title, detail: item.decision })),
+      ...t.milestones.map(item => ({ at: item.date, kind: '마일스톤', title: item.title, detail: item.description })),
+      ...t.releases.map(item => ({ at: item.releaseDate, kind: '릴리즈', title: `${item.version || ''} ${item.title || ''}`.trim(), detail: item.summary }))
+    ].filter(item => item.at).sort((a, b) => b.at.localeCompare(a.at));
+    const history = (t.history || []).filter(item => item.at).map(item => ({ at: item.at, kind: '변경 이력', title: item.title || item.action, detail: '' })).sort((a, b) => b.at.localeCompare(a.at));
+    const latest = domainItems[0] || history[0], dates = `${t.startDate} ~ ${C.endDate(t) || '종료일 미정'}`, taskSummary = String(t.summary || '').replace(/\s+/g, ' ').trim();
+    const prefix = `${C.statuses[t.status]} · ${C.progress(ws.tasks, t)}%\n${dates}${taskSummary ? `\n${taskSummary.slice(0, 140)}` : ''}`;
+    if (!latest) return `${prefix}\n최근 기록 없음`;
+    const detail = String(latest.detail || '').replace(/\s+/g, ' ').trim();
+    return `${prefix}\n최근 ${latest.kind} · ${latest.at.slice(0, 10)}\n${latest.title || ''}${detail ? ` — ${detail.slice(0, 140)}` : ''}`;
+  }
+  function installGanttOrder(row, task, handle) {
+    handle.addEventListener('dragstart', event => { if (!canReorder()) { event.preventDefault(); message('검색·필터·보관함 보기 중에는 순서를 이동할 수 없습니다.', true); return; } ui.dragTask = task.id; event.dataTransfer.setData('text/plain', task.id); event.dataTransfer.effectAllowed = 'move'; });
+    handle.addEventListener('dragend', () => ui.dragTask = null);
+    row.addEventListener('dragover', event => { if (!canReorder()) return; const moving = ws.tasks.find(t => t.id === ui.dragTask); if (!moving || moving.parentId !== task.parentId || moving.id === task.id) return; event.preventDefault(); const before = event.clientY < row.getBoundingClientRect().top + row.getBoundingClientRect().height / 2; row.dataset.drop = before ? 'before' : 'after'; row.classList.toggle('drop-before', before); row.classList.toggle('drop-after', !before); });
+    row.addEventListener('dragleave', () => row.classList.remove('drop-before', 'drop-after'));
+    row.addEventListener('drop', event => { event.preventDefault(); const id = ui.dragTask || event.dataTransfer.getData('text/plain'), moving = ws.tasks.find(t => t.id === id), position = row.dataset.drop; row.classList.remove('drop-before', 'drop-after'); ui.dragTask = null; if (!moving || moving.parentId !== task.parentId || moving.id === task.id) { message('간트의 위·아래 이동은 같은 상위 과제 안에서만 가능합니다.', true); return; } const siblings = C.children(ws.tasks, task.parentId); const beforeId = position === 'before' ? task.id : siblings[siblings.findIndex(t => t.id === task.id) + 1]?.id; guard(() => { ws.relocate(id, task.parentId, beforeId); render(); message('간트에서 과제 순서를 변경했습니다. 파일 저장이 필요합니다.'); }); });
+  }
+  function installScheduleDrag(bar, lane, task, range, pos, tooltip) {
+    let startX = 0, delta = 0, pointerId = null;
+    const showTip = event => { if (pointerId !== null) return; const box = lane.getBoundingClientRect(); tooltip.hidden = false; tooltip.style.left = Math.max(4, Math.min(event.clientX - box.left + 10, box.width - Math.min(320, box.width * .75))) + 'px'; };
+    bar.addEventListener('pointerenter', showTip); bar.addEventListener('pointermove', event => {
+      if (pointerId === null) return showTip(event);
+      delta = Math.round((event.clientX - startX) / Math.max(1, lane.clientWidth) * range.days);
+      bar.style.left = pos(C.iso(C.day(task.startDate) + delta)) + '%';
+    });
+    bar.addEventListener('pointerleave', () => { if (pointerId === null) tooltip.hidden = true; });
+    bar.addEventListener('pointerdown', event => { if (event.button !== 0) return; event.preventDefault(); startX = event.clientX; delta = 0; pointerId = event.pointerId; tooltip.hidden = true; bar.classList.add('dragging'); try { bar.setPointerCapture?.(pointerId); } catch (_) {} });
+    const finish = event => { if (pointerId !== event.pointerId) return; try { bar.releasePointerCapture?.(pointerId); } catch (_) {} pointerId = null; bar.classList.remove('dragging'); if (event.type === 'pointerup' && delta) { try { const shifted = C.shiftSchedule(task, delta); ws.record(task.id, { startDate: shifted.startDate, targetEndDate: shifted.targetEndDate, actualEndDate: shifted.actualEndDate }); render(); message(`${task.title} 일정을 ${Math.abs(delta)}일 ${delta > 0 ? '뒤로' : '앞으로'} 이동했습니다. 마일스톤·릴리즈 날짜는 유지했습니다.`); } catch (error) { render(); message(error.message, true); } } else renderGantt(orderedRows()); };
+    bar.addEventListener('pointerup', finish); bar.addEventListener('pointercancel', finish);
+  }
   function renderGantt(rows) {
     if (!rows.length) return $('#gantt').replaceChildren(el('div', { class: 'empty', text: '표시할 일정이 없습니다.' }));
     const range = C.timeline(rows.map(r => r.t));
@@ -79,11 +116,12 @@
     for (const { t, depth } of rows) {
       const lane = el('div', { class: 'gantt-lane' });
       for (const m of range.months) { const line = el('span', { class: 'gantt-grid' }); line.style.left = (m.start - range.start) / range.days * 100 + '%'; lane.append(line); }
-      const end = C.endDate(t);
-      if (end) { const bar = el('div', { class: 'gantt-bar' + (!depth ? ' root' : ''), title: `${t.title}: ${t.startDate} ~ ${end}` }, el('div', { class: 'progress-fill' })); bar.style.left = pos(t.startDate) + '%'; bar.style.width = Math.max(.3, (C.day(end) - C.day(t.startDate) + 1) / range.days * 100) + '%'; bar.firstChild.style.width = C.progress(ws.tasks, t) + '%'; lane.append(bar); } else lane.append(el('span', { class: 'no-end', text: '종료일 미정' }));
+      const end = C.endDate(t), summary = latestStatusSummary(t), tooltip = el('div', { class: 'gantt-tooltip', role: 'tooltip', text: summary, hidden: true });
+      if (end) { const bar = el('div', { class: 'gantt-bar' + (!depth ? ' root' : ''), title: summary, tabindex: 0, 'aria-label': `${t.title}. ${summary.replace(/\n/g, ' ')}` }, el('div', { class: 'progress-fill' })); bar.style.left = pos(t.startDate) + '%'; bar.style.width = Math.max(.3, (C.day(end) - C.day(t.startDate) + 1) / range.days * 100) + '%'; bar.firstChild.style.width = C.progress(ws.tasks, t) + '%'; bar.addEventListener('focus', () => { tooltip.hidden = false; tooltip.style.left = Math.max(4, Math.min(lane.clientWidth * pos(t.startDate) / 100, lane.clientWidth - 320)) + 'px'; }); bar.addEventListener('blur', () => tooltip.hidden = true); lane.append(bar, tooltip); installScheduleDrag(bar, lane, t, range, pos, tooltip); } else lane.append(el('span', { class: 'no-end', text: '종료일 미정', title: summary }));
       for (const item of [...t.milestones.map(m => ({ date: m.date, title: m.title, type: '', symbol: '●' })), ...t.releases.map(r => ({ date: r.releaseDate, title: `v${r.version} ${r.title || ''}`, type: ' release', symbol: '◆' }))]) { if (C.day(item.date) === null) continue; const marker = el('span', { class: 'gantt-marker' + item.type, title: `${item.date} ${item.title}`, text: item.symbol }); marker.style.left = pos(item.date) + '%'; lane.append(marker); }
       const now = pos(C.today()); if (now >= 0 && now <= 100) { const line = el('span', { class: 'today-line', title: '오늘' }); line.style.left = now + '%'; lane.append(line); }
-      const label = el('button', { class: 'gantt-label task-open', text: t.title, onclick: () => openTask(t.id) }); label.style.setProperty('--depth', depth); table.append(el('div', { class: 'gantt-row' }, label, lane));
+      const handle = el('span', { class: 'drag-handle', draggable: true, title: '위·아래로 드래그하여 순서 변경', 'aria-hidden': true }, '⠿');
+      const label = el('div', { class: 'gantt-label gantt-task-label' }, handle, el('button', { class: 'task-open', text: t.title, onclick: () => openTask(t.id) })); label.style.setProperty('--depth', depth); const row = el('div', { class: 'gantt-row', 'data-id': t.id }, label, lane); installGanttOrder(row, t, handle); table.append(row);
     }
     $('#gantt').replaceChildren(table);
   }
@@ -124,7 +162,7 @@
     if (!ui.draft) return true;
     try {
       const { task, description, checklist } = ui.draft;
-      if (task.status === 'completed') { task.progress = 100; task.actualEndDate ||= C.today() < task.startDate ? task.startDate : C.today(); }
+      if (task.status === 'completed') task.progress = 100;
       C.validateTask(task);
       for (const group of ['logs', 'decisions', 'milestones', 'releases']) for (const item of task[group]) {
         if (typeof item.title !== 'string' || !item.title.trim()) throw Error('기록의 제목을 입력해 주세요.');
@@ -137,7 +175,7 @@
       body = regex.test(body) ? body.replace(regex, () => images) : body.trimEnd() + '\n\n' + images + '\n';
       task.bodyFile ||= `notes/${task.id}.md`;
       ws.record(task.id, task, { description, checklist }); ws.files.set(task.bodyFile, C.bytes(body));
-      ui.draft.task = C.clone(ws.tasks.find(t => t.id === task.id)); ui.draftDirty = false; ui.addedImages.clear(); $('#draftState').textContent = '적용됨 · 파일 저장 필요'; $('#taskError').textContent = ''; $('#taskTitle').textContent = task.title; render(); return true;
+      ui.draft.task = C.clone(ws.tasks.find(t => t.id === task.id)); ui.draftDirty = false; ui.addedImages.clear(); $('#draftState').textContent = '적용됨 · 파일 저장 필요'; $('#taskError').textContent = ''; $('#taskTitle').textContent = task.title; render(); renderDetail(); $('#draftState').textContent = '적용됨 · 파일 저장 필요'; return true;
     } catch (e) { $('#taskError').textContent = e.message; return false; }
   }
   function renderOverview() {
@@ -212,6 +250,17 @@
     $('#archiveTask').textContent = ui.draft.task.archived ? '보관 해제' : '보관하기';
     $('#taskFields').replaceChildren(ui.tab === 'overview' ? renderOverview() : ui.tab === 'body' ? renderBody() : ui.tab === 'history' ? renderHistory() : renderCollection(ui.tab));
   }
+  function deleteDraft() {
+    if (!ui.draft) return;
+    const task = ws.tasks.find(t => t.id === ui.selected); if (!task) return;
+    const children = C.descendants(ws.tasks, task.id).size;
+    const scope = children ? `이 과제와 하위 작업 ${children}개` : '이 과제';
+    if (!confirm(`${scope}를 대시보드에서 삭제할까요?\n\n목록과 index.json에서는 제거되며, 기존 MD·JSON·이미지 파일은 Git 복구를 위해 남겨 둡니다.`)) return;
+    const removed = ws.remove(task.id); const removedIds = new Set(removed.map(item => item.id));
+    if (ui.scope && removedIds.has(ui.scope)) ui.scope = null;
+    ui.addedImages.clear(); ui.draftDirty = false; ui.draft = null; ui.selected = null; revokeImages(); $('#taskDialog').close(); render();
+    message(`${removed.length}개 과제를 대시보드에서 삭제했습니다. 변경을 파일에 저장해야 확정됩니다.`);
+  }
   function addTask(parentId = null) { guard(() => { const t = ws.add(parentId); if (parentId) ui.collapsed.delete(parentId); ui.query = ''; $('#search').value = ''; render(); openTask(t.id); }); }
   async function chooseFolder() {
     if (!window.showDirectoryPicker) throw Error('이 브라우저에서는 폴더 직접 저장을 사용할 수 없습니다. Edge/Chrome 또는 Git 연결을 사용하세요.');
@@ -268,7 +317,7 @@
   $('#sidebarAdd').addEventListener('click', () => addTask()); $('#newTaskButton').addEventListener('click', () => addTask());
   $('#search').addEventListener('input', e => { ui.query = e.target.value.toLowerCase().trim(); const rows = orderedRows(); renderTree(rows); renderGantt(rows); });
   for (const [id, key] of [['category', 'category'], ['status', 'status']]) $('#' + id).addEventListener('change', e => { ui[key] = e.target.value; render(); });
-  $('#showArchived').addEventListener('change', e => { ui.archived = e.target.checked; render(); });
+  $('#archiveMode').addEventListener('change', e => { ui.archiveMode = e.target.value; ui.scope = null; render(); });
   $('#expandButton').addEventListener('click', () => { ui.collapsed.clear(); render(); });
   for (const view of ['tree', 'gantt']) $('#' + view + 'View').addEventListener('click', () => { ui.view = view; $('#tree').hidden = view !== 'tree'; $('#gantt').hidden = view !== 'gantt'; for (const name of ['tree', 'gantt']) { $('#' + name + 'View').classList.toggle('active', name === view); $('#' + name + 'View').setAttribute('aria-pressed', name === view); } });
   $('#taskTabs').addEventListener('click', e => { const tab = e.target.closest('[data-tab]'); if (tab) { ui.tab = tab.dataset.tab; renderDetail(); } });
@@ -276,6 +325,7 @@
   $('#closeTask').addEventListener('click', closeDraft); $('#taskDialog').addEventListener('cancel', e => { e.preventDefault(); closeDraft(); });
   $('#addChild').addEventListener('click', () => { if (!applyDraft()) return; const parentId = ui.selected; $('#taskDialog').close(); ui.draft = null; addTask(parentId); });
   $('#archiveTask').addEventListener('click', () => { ui.draft.task.archived = !ui.draft.task.archived; draftChanged(); renderDetail(); });
+  $('#deleteTask').addEventListener('click', deleteDraft);
   $('#folderButton').addEventListener('click', () => guard(chooseFolder)); $('#saveButton').addEventListener('click', () => guard(save)); $('#exportButton').addEventListener('click', () => guard(exportZip));
   $('#mobileFolderButton').addEventListener('click', () => guard(chooseFolder));
   $('#mobileAllTasks').addEventListener('click', () => { ui.scope = null; render(); });

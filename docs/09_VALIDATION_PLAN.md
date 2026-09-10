@@ -25,6 +25,16 @@ UI 변경 전/후에도 필수 안정 필드가 보존.
 ### V-GANTT-03 End date
 completed + actualEndDate → 실제 종료일.
 그 외 targetEndDate.
+완료 상태에서도 actualEndDate 공란을 보존한다.
+
+### V-GANTT-04 Interaction
+과제명 손잡이의 위/아래 드래그는 같은 상위 과제 안의 order를 변경한다.
+막대 좌우 드래그는 task 시작/목표/실제 종료일을 같은 일수만큼 이동하고 milestone/release 날짜는 유지한다.
+마우스 오버와 키보드 포커스에서 최근 상태 요약을 표시한다.
+
+### V-DATA-05 Delete / Archive
+보관 전용 보기와 복구가 동작한다.
+삭제 시 선택 과제와 모든 하위 작업이 index에서 제거되고 기존 파일은 보존된다.
 
 ## Save
 
