@@ -1,0 +1,40 @@
+{
+  "schemaVersion": 1,
+  "id": "TASK-DEMO-C1",
+  "parentId": "TASK-DEMO-C",
+  "order": 0,
+  "title": "자료 조사",
+  "category": "personal",
+  "status": "in_progress",
+  "progress": 30,
+  "startDate": "2026-09-10",
+  "targetEndDate": "2026-10-02",
+  "actualEndDate": null,
+  "summary": "웹 폼에서 자유롭게 수정할 수 있는 예시 작업입니다.",
+  "tags": [
+    "샘플"
+  ],
+  "owners": [
+    "나"
+  ],
+  "links": [],
+  "bodyFile": "notes/TASK-DEMO-C1.md",
+  "images": [],
+  "milestones": [],
+  "logs": [
+    {
+      "id": "LOG-TASK-DEMO-C1",
+      "at": "2026-09-10T09:00:00+09:00",
+      "type": "development",
+      "title": "샘플 작업 등록",
+      "content": "실제 업무명과 내부 자료가 없는 공개 데모입니다.",
+      "tags": []
+    }
+  ],
+  "decisions": [],
+  "releases": [],
+  "history": [],
+  "archived": false,
+  "createdAt": "2026-09-10T00:00:00Z",
+  "updatedAt": "2026-09-10T00:00:00Z"
+}

@@ -1,0 +1,169 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "task.schema.json",
+  "title": "Development History Task",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "id",
+    "title",
+    "category",
+    "status",
+    "progress",
+    "startDate",
+    "targetEndDate",
+    "actualEndDate",
+    "milestones",
+    "logs",
+    "decisions",
+    "releases"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^TASK-[A-Z0-9_-]+$"
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1
+    },
+    "category": {
+      "enum": [
+        "assigned",
+        "personal",
+        "project"
+      ]
+    },
+    "status": {
+      "enum": [
+        "planned",
+        "in_progress",
+        "blocked",
+        "on_hold",
+        "completed",
+        "cancelled"
+      ]
+    },
+    "progress": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 100
+    },
+    "summary": {
+      "type": "string"
+    },
+    "startDate": {
+      "type": "string",
+      "format": "date"
+    },
+    "targetEndDate": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "format": "date"
+    },
+    "actualEndDate": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "format": "date"
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "owners": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "links": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      }
+    },
+    "milestones": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      }
+    },
+    "logs": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      }
+    },
+    "decisions": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      }
+    },
+    "releases": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      }
+    },
+    "createdAt": {
+      "type": "string"
+    },
+    "updatedAt": {
+      "type": "string"
+    },
+    "parentId": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "pattern": "^TASK-[A-Z0-9_-]+$"
+    },
+    "order": {
+      "type": "number",
+      "minimum": 0
+    },
+    "bodyFile": {
+      "type": "string",
+      "pattern": "^notes/TASK-[A-Z0-9_-]+\\.md$"
+    },
+    "images": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "file"
+        ],
+        "properties": {
+          "file": {
+            "type": "string",
+            "pattern": "^images/TASK-[A-Z0-9_-]+/[A-Za-z0-9_-]+\\.(png|jpg|jpeg|webp|gif)$"
+          },
+          "caption": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "archived": {
+      "type": "boolean"
+    },
+    "history": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      }
+    }
+  },
+  "additionalProperties": true
+}

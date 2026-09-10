@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "id": "TASK-FUTURE",
+  "title": "Future field compatibility",
+  "category": "personal",
+  "status": "planned",
+  "progress": 0,
+  "startDate": "2026-09-10",
+  "targetEndDate": null,
+  "actualEndDate": null,
+  "milestones": [],
+  "logs": [],
+  "decisions": [],
+  "releases": [],
+  "futureMetadata": { "flag": "preserve-me" }
+}

@@ -1,0 +1,10 @@
+.DS_Store
+Thumbs.db
+*.log
+*.tmp
+.env
+.env.*
+tools/git-helper/local-config.json
+__pycache__/
+.dashboard-backups/
+.test-output/

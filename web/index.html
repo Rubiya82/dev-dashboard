@@ -1,0 +1,763 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <meta name="referrer" content="no-referrer">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Crect width='40' height='40' rx='10' fill='%237c8cff'/%3E%3Cpath d='M10 12h8v8h-8zm12 0h8v8h-8zM10 24h8v5h-8zm12 0h8v5h-8z' fill='white'/%3E%3C/svg%3E">
+  <title>개발 작업실 · Development Workspace</title>
+  <style>:root {
+  color-scheme: dark; --bg:#101116; --sidebar:#13151c; --panel:#181b23; --panel-hover:#20242f;
+  --text:#ebeef7; --muted:#929bae; --line:#2a2e3c; --accent:#a7a1ff; --purple:#8273ee;
+  --green:#7cd5b1; --blue:#84b7fc; --orange:#e9b980; --red:#ee929b; --radius:12px;
+  font-family:"Segoe UI","Malgun Gothic",sans-serif; font-size:14px;
+}
+* { box-sizing:border-box; }
+body { margin:0; background:var(--bg); color:var(--text); line-height:1.55; }
+button,input,select,textarea { font:inherit; color:inherit; }
+button { cursor:pointer; border:1px solid var(--line); background:var(--panel); padding:8px 13px; border-radius:7px; white-space:nowrap; }
+button:hover:not(:disabled) { background:var(--panel-hover); border-color:#60627c; }
+button:disabled { opacity:.45; cursor:default; }
+button.primary { background:var(--purple); border-color:var(--purple); color:white; }
+button.primary:hover:not(:disabled) { background:#9487fc; }
+button.subtle { border-color:transparent; background:transparent; color:var(--muted); }
+input,select,textarea { background:#11141d; border:1px solid #363c4e; border-radius:7px; padding:9px 11px; min-width:0; }
+textarea { resize:vertical; line-height:1.7; }
+input[type=checkbox] { accent-color:var(--purple); }
+input[type=range] { accent-color:var(--purple); padding:0; }
+button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,[tabindex]:focus-visible { outline:2px solid var(--accent); outline-offset:3px; }
+h1,h2,h3,p { margin:0; } h2 { font-size:18px; } h3 { font-size:15px; }
+small,.muted { color:var(--muted); } .spacer { flex:1; }
+[hidden] { display:none!important; }
+.skip { position:fixed; top:-60px; z-index:100; padding:12px; background:var(--purple); color:white; } .skip:focus { top:0; }
+.sidebar { position:fixed; inset:0 auto 0 0; width:232px; background:var(--sidebar); border-right:1px solid var(--line); padding:25px 16px; display:flex; flex-direction:column; z-index:3; }
+.brand { display:flex; align-items:center; gap:11px; font-weight:650; font-size:18px; margin:0 8px 38px; letter-spacing:-.3px; }
+.brand-icon { display:grid; place-items:center; width:36px; height:36px; border-radius:10px; background:linear-gradient(145deg,#a599fd,#776ce2); color:white; font-size:27px; }
+.brand small { display:block; font-size:8px; letter-spacing:1.3px; font-weight:500; margin-top:1px; }
+.workspace-label { color:#828b9f; font-size:10px; font-weight:600; letter-spacing:1.5px; padding:0 12px; margin-bottom:12px; }
+.nav { width:100%; display:flex; align-items:center; gap:10px; border:0; background:transparent; text-align:left; color:var(--muted); padding:11px 12px; font-size:13px; }
+.nav span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.nav.active { background:#272539; color:#c8c1ff; }
+.nav b { margin-left:auto; font-size:11px; background:#3b3657; padding:0 6px; border-radius:4px; }
+.project-label { display:flex; align-items:center; justify-content:space-between; margin-top:27px; margin-bottom:8px; }
+.project-label button { padding:0 3px; border:0; background:none; font-size:20px; color:var(--muted); }
+.project-dot { width:7px; height:7px; flex:none; border-radius:2px; background:var(--accent); }
+.sidebar-bottom { margin-top:auto; padding:18px 8px 0; border-top:1px solid var(--line); }
+.sidebar-bottom>button { display:block; width:100%; margin-top:8px; text-align:left; font-size:12px; }
+.sidebar-bottom p { font-size:12px; color:#747e94; margin:26px 2px 15px; }
+.sidebar-bottom>small { font-size:9px; letter-spacing:1.5px; }
+.source-badge { font-size:11px; color:var(--green); margin-bottom:12px; }
+main { margin-left:232px; min-width:0; }
+.topbar { min-height:72px; display:flex; align-items:center; justify-content:space-between; gap:12px; padding:18px 32px; border-bottom:1px solid var(--line); }
+.breadcrumb { font-size:12px; color:var(--muted); white-space:nowrap; } .breadcrumb span { margin:0 12px; color:#51596c; } .breadcrumb strong { font-weight:500; color:#c6ccdb; }
+.header-actions { display:flex; align-items:center; gap:8px; } .header-actions button { font-size:12px; }
+#saveState { font-size:11px; margin-right:10px; color:var(--muted); } #saveState.dirty { color:var(--orange); }
+.content { max-width:1580px; padding:35px 32px 20px; margin:auto; }
+.page-heading { display:flex; justify-content:space-between; align-items:center; gap:20px; margin-bottom:23px; }
+.eyebrow { font-size:9px; letter-spacing:1.6px; color:var(--accent); font-weight:600; }
+h1 { font-size:28px; font-weight:650; letter-spacing:-1.1px; margin:7px 0 5px; }
+.page-heading p { font-size:12px; color:var(--muted); }
+.notice { border:1px solid #383751; border-radius:8px; background:#1c1c2a; padding:10px 14px; margin:0 0 22px; font-size:12px; color:#b5b3ce; }
+.notice.error { border-color:#6f3e47; color:#ffb8c2; background:#2e1d25; }
+.kpis { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:14px; margin-bottom:27px; }
+.kpi { border:1px solid var(--line); border-radius:var(--radius); background:var(--panel); padding:18px 20px; }
+.kpi-top { display:flex; justify-content:space-between; color:var(--muted); font-size:12px; }
+.kpi-icon { color:var(--accent); } .kpi strong { display:block; font-size:29px; font-weight:600; line-height:1.3; margin:10px 0 5px; letter-spacing:-.8px; } .kpi small { font-size:10px; }
+.work-panel,.small-panel { background:var(--panel); border:1px solid var(--line); border-radius:var(--radius); overflow:hidden; }
+.viewbar { padding:0 18px; min-height:57px; display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--line); gap:10px; }
+.views { display:flex; height:57px; gap:16px; } .views button { border:0; border-bottom:2px solid transparent; background:none; border-radius:0; color:var(--muted); padding:0 3px; font-size:13px; }
+.views button.active { color:#d4ceff; border-bottom-color:var(--accent); }
+.viewbar-right { display:flex; align-items:center; gap:13px; font-size:11px; color:var(--muted); }
+.viewbar-right button { font-size:11px; padding:4px; }
+.filterbar { display:flex; gap:10px; padding:16px 18px; align-items:center; flex-wrap:wrap; }
+.search { display:flex; align-items:center; gap:8px; background:#141720; border:1px solid var(--line); border-radius:6px; padding-left:10px; flex:1; min-width:170px; }
+.search span { font-size:21px; color:var(--muted); } .search input { border:0; background:transparent; padding:8px 0; width:100%; font-size:12px; }
+.filterbar select { font-size:12px; padding:9px 8px; } .archive-toggle { display:flex; align-items:center; gap:4px; font-size:11px; color:var(--muted); }
+.tree { overflow-x:auto; }
+.task-row { display:grid; grid-template-columns:minmax(280px,1fr) 110px 120px 106px 95px; align-items:center; gap:10px; min-height:55px; padding:0 18px; border-top:1px solid #292d3a; font-size:12px; min-width:755px; }
+.task-row.header { min-height:35px; background:#1c202a; color:var(--muted); border-top:0; font-size:10px; }
+.task-row.root-row { background:#1c1f2a; }
+.task-row:hover:not(.header) { background:#242734; }
+.task-row.drop-before { box-shadow:inset 0 2px 0 var(--accent); }
+.task-row.drop-after { box-shadow:inset 0 -2px 0 var(--accent); }
+.task-row.drop-inside { background:#302b49; box-shadow:inset 3px 0 0 var(--accent); }
+.task-row.archived { opacity:.5; }
+.task-name { display:flex; align-items:center; min-width:0; gap:6px; padding-left:calc(var(--depth,0)*22px); }
+.drag-handle { color:#656d83; cursor:grab; font-size:17px; user-select:none; }
+.fold { padding:2px; min-width:20px; border:0; background:none; color:var(--muted); }
+.task-open { padding:7px 0; border:0; background:none; text-align:left; white-space:normal; overflow-wrap:anywhere; font-size:12px; font-weight:500; }
+.task-open:hover { background:none!important; color:#d2caff; }
+.child-count { color:#69738a; font-size:10px; margin-left:3px; }
+.row-status { width:100%; border:0; padding:5px 8px; font-size:10px; }
+.status-in_progress { color:var(--blue); background:#22354c; } .status-completed { color:var(--green); background:#213b35; }
+.status-planned { color:#a9afc1; background:#2b2e3a; } .status-blocked { color:var(--red); background:#482b33; } .status-on_hold { color:var(--orange); background:#45382c; } .status-cancelled { color:#8d91a0; background:#272933; }
+.row-progress { display:flex; gap:9px; align-items:center; font-size:10px; color:#afb6c7; }
+.progress-track { flex:1; height:5px; background:#303544; border-radius:10px; overflow:hidden; }
+.progress-fill { background:#9e94f9; height:100%; border-radius:10px; }
+.row-date { font-size:11px; color:var(--muted); }
+.row-actions { display:flex; justify-content:flex-end; gap:3px; }
+.row-actions button { padding:2px 5px; border-color:transparent; background:none; color:#9099b0; font-size:15px; }
+.panel-footer { display:flex; justify-content:space-between; gap:12px; border-top:1px solid var(--line); padding:11px 18px; color:#758098; font-size:10px; }
+.empty { padding:45px 20px; text-align:center; color:var(--muted); font-size:13px; }
+.gantt { overflow-x:auto; }
+.gantt-table { min-width:900px; }
+.gantt-row { display:grid; grid-template-columns:260px minmax(640px,1fr); min-height:48px; border-top:1px solid var(--line); }
+.gantt-label { padding:13px 14px 10px calc(14px + var(--depth,0)*18px); font-size:11px; border-right:1px solid var(--line); white-space:nowrap; text-overflow:ellipsis; overflow:hidden; }
+.gantt-scale { position:relative; min-height:35px; background:#202430; }
+.gantt-month { position:absolute; font-size:10px; padding:10px 8px; border-left:1px solid var(--line); }
+.gantt-lane { position:relative; min-height:48px; }
+.gantt-grid { position:absolute; top:0; bottom:0; border-left:1px solid #303544; pointer-events:none; }
+.gantt-bar { position:absolute; top:15px; height:17px; border-radius:4px; background:#484263; overflow:hidden; }
+.gantt-bar .progress-fill { opacity:.8; } .gantt-bar.root { height:9px; top:19px; background:#665c96; }
+.gantt-marker { position:absolute; transform:translateX(-50%); top:1px; font-size:13px; color:var(--green); }
+.gantt-marker.release { color:var(--orange); top:28px; }
+.today-line { position:absolute; top:0; bottom:0; width:1px; background:#ee9790; opacity:.7; }
+.no-end { position:absolute; top:15px; left:10px; color:var(--muted); font-size:11px; }
+.bottom-grid { display:grid; grid-template-columns:1fr 1fr; gap:18px; margin-top:25px; }
+.small-panel { padding:20px; }
+.section-title { display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; }.section-title h2 { font-size:13px; font-weight:600; }.section-title span { color:#6e7890; font-size:9px; letter-spacing:1px; }
+.activity-item { display:flex; align-items:flex-start; gap:13px; padding:11px 0; border-top:1px solid #282d39; font-size:12px; }
+.activity-item:first-child { border-top:0; }.activity-icon { width:27px; height:27px; display:grid; place-items:center; border-radius:7px; background:#2b2840; color:var(--accent); font-size:13px; }
+.activity-item small { display:block; font-size:10px; margin-top:3px; }.activity-item time { margin-left:auto; flex:none; font-size:10px; color:#8c96ab; }
+.page-footer { display:flex; justify-content:space-between; color:#636d82; font-size:9px; padding:25px 0 0; }
+.errors-panel { background:#301f27; border:1px solid #764654; border-radius:8px; margin-top:20px; padding:15px; font-size:12px; }
+dialog { color:var(--text); background:#191d27; border:1px solid #3b4154; padding:0; border-radius:13px; width:min(910px,95vw); max-height:93vh; box-shadow:0 30px 100px #0009; }
+dialog::backdrop { background:#050710b8; backdrop-filter:blur(3px); }
+.dialog-head { display:flex; align-items:center; justify-content:space-between; gap:15px; padding:22px 25px 14px; }
+.dialog-head h2 { margin-top:4px; }.dialog-head .eyebrow { font-size:8px; overflow-wrap:anywhere; }
+.icon-button { padding:0 8px; font-size:25px; background:transparent; border:0; }
+.tabs { display:flex; gap:6px; padding:0 24px; border-bottom:1px solid var(--line); overflow-x:auto; }
+.tabs button { border:0; border-bottom:2px solid transparent; border-radius:0; background:none; padding:12px 6px; font-size:12px; color:var(--muted); }
+.tabs button[aria-selected=true] { border-bottom-color:var(--accent); color:#c9c0ff; }
+.dialog-body { padding:22px 25px; min-height:200px; }
+.form-grid { display:grid; grid-template-columns:1fr 1fr; gap:15px 18px; }.form-field { display:flex; flex-direction:column; gap:6px; font-size:11px; color:var(--muted); }
+.form-field input,.form-field textarea,.form-field select { width:100%; color:var(--text); font-size:13px; }.form-field.wide { grid-column:1/-1; }
+.form-field small { font-size:10px; }.form-error { color:var(--red); padding:0 25px; font-size:12px; }
+.dialog-footer { display:flex; justify-content:flex-end; align-items:center; flex-wrap:wrap; gap:9px; border-top:1px solid var(--line); padding:15px 25px; }
+.dialog-footer button { font-size:12px; }.dialog-footer .muted { font-size:10px; }
+.body-editor textarea { min-height:130px; }.body-editor { display:grid; gap:16px; }
+.body-toolbar { display:flex; justify-content:space-between; gap:12px; align-items:center; }.body-toolbar p { font-size:11px; color:var(--muted); }
+.checklist-item { display:flex; gap:8px; align-items:center; margin-top:8px; }.checklist-item input[type=text] { flex:1; }.checklist-item button { padding:3px 8px; }
+.image-drop { border:1px dashed #4c536c; border-radius:8px; padding:18px; text-align:center; color:var(--muted); font-size:12px; }
+.image-drop.dragging { border-color:var(--accent); background:#29253c; }.image-drop button { margin:8px; }
+.image-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; }.image-card img { width:100%; height:120px; object-fit:contain; background:#10141d; border-radius:6px; }.image-card input { width:100%; font-size:11px; padding:5px; }.image-card button { font-size:10px; padding:3px 6px; }
+.preview { line-height:1.8; overflow-wrap:anywhere; }.preview p { white-space:pre-wrap; margin:10px 0; }.preview img { max-width:100%; max-height:400px; object-fit:contain; }.preview pre { white-space:pre-wrap; background:#10141d; padding:14px; border-radius:7px; }
+.preview h3 { margin:18px 0 8px; }.preview figure { margin:15px 0; }.preview figcaption { font-size:12px; color:var(--muted); }
+.collection-head { display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; }.collection-head p { font-size:12px; color:var(--muted); }
+.record { border:1px solid var(--line); border-radius:9px; padding:16px; margin-bottom:12px; }.record summary { display:flex; gap:12px; align-items:center; cursor:pointer; }.record summary span { flex:1; }.record summary small { font-size:10px; }.record .form-grid { margin-top:17px; }.record>button { margin-top:12px; font-size:11px; color:var(--red); }
+.history-item { display:grid; grid-template-columns:145px 1fr; gap:15px; font-size:12px; border-bottom:1px solid var(--line); padding:12px 0; }.history-item time { color:var(--muted); font-size:10px; }
+.connection-form { padding:0 0 10px; }.connection-form>p,.connection-form>label { margin:15px 25px; }.connection-form>p { font-size:12px; }.connection-form>label { display:flex; flex-direction:column; gap:6px; font-size:12px; }
+#connectionDialog { width:min(520px,95vw); } .file-list { font-size:11px; color:var(--muted); padding-left:18px; max-height:200px; overflow:auto; } #gitTarget { font-size:12px; margin-bottom:16px; overflow-wrap:anywhere; } #gitDiff { white-space:pre-wrap; font-size:10px; max-height:280px; overflow:auto; background:#10141d; padding:12px; } #publishResult { margin-top:15px; font-size:12px; color:var(--green); }
+.mobile-tools { display:none; }
+@media(max-width:850px) { .mobile-tools { display:flex; gap:8px; margin-bottom:12px; }.mobile-tools button { font-size:11px; } }
+@media(min-width:1600px) { .content { padding-top:42px; }.task-row { min-height:62px; } }
+@media(max-width:1200px) { .sidebar { width:205px; } main { margin-left:205px; }.topbar,.content { padding-left:22px; padding-right:22px; }.breadcrumb { display:none; }.topbar { justify-content:flex-end; }.kpi { padding:15px; }.brand { margin-left:0; font-size:16px; } }
+@media(max-width:850px) { .sidebar { width:65px; padding:18px 9px; }.brand { margin:0 3px 25px; }.brand>div,.workspace-label,.sidebar-bottom,.nav span,.nav b,#projectNav { display:none; }.brand-icon { width:35px; height:35px; flex:none; }.nav { justify-content:center; } main { margin-left:65px; }.kpis { grid-template-columns:repeat(2,1fr); }.bottom-grid { grid-template-columns:1fr; }.page-heading { align-items:flex-start; }.page-heading h1 { font-size:24px; }.header-actions { flex-wrap:wrap; justify-content:flex-end; } }
+@media(max-width:600px) { .sidebar { display:none; } main { margin-left:0; }.topbar { padding:12px 14px; }.content { padding:22px 14px; }.page-heading { flex-direction:column; gap:13px; }.page-heading button { font-size:12px; }.kpis { gap:9px; margin-bottom:18px; }.kpi { padding:13px; }.kpi strong { font-size:25px; }.header-actions { gap:5px; } .header-actions button { font-size:10px; padding:7px 8px; } #saveState { width:100%; text-align:right; }.filterbar { padding:12px; gap:7px; }.search { flex-basis:100%; }.filterbar select { font-size:11px; flex:1; }.archive-toggle { font-size:10px; }.viewbar { padding:0 12px; }.viewbar-right { gap:5px; }.views { gap:10px; }.views button { font-size:12px; }.panel-footer { flex-direction:column; gap:4px; }.form-grid { grid-template-columns:1fr; }.form-field.wide { grid-column:auto; }.dialog-body,.dialog-head { padding:17px; }.tabs { padding:0 15px; }.dialog-footer { padding:12px 16px; }.image-grid { grid-template-columns:1fr 1fr; }.page-footer { flex-direction:column; gap:5px; } }
+</style>
+</head>
+<body>
+  <a class="skip" href="#main">본문으로 이동</a>
+  <aside class="sidebar">
+    <div class="brand"><span class="brand-icon">▦</span><div>개발 작업실<small>DEVELOPMENT WORKSPACE</small></div></div>
+    <div class="workspace-label">WORKSPACE</div>
+    <button class="nav active" id="allTasks">▤ <span>전체 과제</span><b id="sidebarCount">0</b></button>
+    <div class="workspace-label project-label">메인 과제 <button id="sidebarAdd" title="메인 과제 추가" aria-label="메인 과제 추가">＋</button></div>
+    <nav id="projectNav" aria-label="메인 과제"></nav>
+    <div class="sidebar-bottom"><div id="sourceBadge" class="source-badge">○ 불러오는 중</div><button id="folderButton">▱ 작업 폴더 열기</button><button id="helperButton">⇄ Git 연결 설정</button><p>기록은 파일로,<br>작업은 한곳에서.</p><small>LOCAL + GITHUB PAGES</small></div>
+  </aside>
+  <main id="main">
+    <header class="topbar"><div class="breadcrumb">내 작업 공간 <span>/</span> <strong id="scopeTitle">전체 과제</strong></div><div class="header-actions"><span id="saveState">불러오는 중</span><button id="saveButton">로컬 저장</button><button id="exportButton">변경 ZIP</button><button id="publishButton" class="primary">↑ GitHub 반영</button></div></header>
+    <div class="content">
+      <div class="page-heading"><div><div class="eyebrow">MAKE PROGRESS, KEEP THE STORY.</div><h1 id="pageTitle">진행 중인 일, 한눈에.</h1><p>과제를 나누고, 일정을 맞추고, 개발의 흐름을 기록하세요.</p></div><button id="newTaskButton" class="primary">＋ 새 메인 과제</button></div>
+      <div class="mobile-tools"><button id="mobileAllTasks">전체 과제</button><button id="mobileFolderButton">작업 폴더 열기</button></div>
+      <div id="notice" class="notice" role="status" aria-live="polite"></div>
+      <section id="kpis" class="kpis" aria-label="작업 요약"></section>
+      <section class="work-panel">
+        <div class="viewbar"><div class="views"><button id="treeView" aria-pressed="true" class="active">☷ 과제 목록</button><button id="ganttView" aria-pressed="false">▥ 간트 일정</button></div><div class="viewbar-right"><span id="resultCount"></span><button id="expandButton" class="subtle">모두 펼치기</button></div></div>
+        <div class="filterbar"><label class="search"><span>⌕</span><input id="search" type="search" placeholder="과제명, 내용, 태그 검색" aria-label="과제 검색"></label><select id="category" aria-label="분류 필터"><option value="all">모든 분류</option><option value="assigned">수명 업무</option><option value="personal">개인 개발</option><option value="project">프로젝트</option></select><select id="status" aria-label="상태 필터"><option value="all">모든 상태</option><option value="planned">예정</option><option value="in_progress">진행 중</option><option value="blocked">차단됨</option><option value="on_hold">보류</option><option value="completed">완료</option><option value="cancelled">취소</option></select><label class="archive-toggle"><input type="checkbox" id="showArchived"> 보관함 포함</label></div>
+        <div id="tree" class="tree" aria-label="계층별 과제 목록"></div>
+        <div id="gantt" class="gantt" aria-label="간트 일정" hidden></div>
+        <div class="panel-footer"><span id="treeHint">⠿ 드래그로 순서 변경 · 과제 중앙에 놓으면 하위 작업으로 이동</span><span>진행률은 하위 작업에서 자동 집계</span></div>
+      </section>
+      <section class="bottom-grid"><div class="small-panel"><div class="section-title"><h2>다가오는 마일스톤</h2><span>UP NEXT</span></div><div id="upcoming"></div></div><div class="small-panel"><div class="section-title"><h2>최근 개발 기록</h2><span>ACTIVITY</span></div><div id="activity"></div></div></section>
+      <details id="errorsPanel" class="errors-panel" hidden><summary>불러오기 오류 · 정상 과제는 계속 조회할 수 있습니다</summary><ul id="errors"></ul></details>
+      <footer class="page-footer"><span>Development Workspace</span><span>샘플 일정과 진행률은 예시입니다.</span></footer>
+    </div>
+  </main>
+  <dialog id="taskDialog" aria-labelledby="taskTitle"><form id="taskForm">
+    <div class="dialog-head"><div><span class="eyebrow" id="taskId"></span><h2 id="taskTitle">과제 편집</h2></div><button type="button" class="icon-button" id="closeTask" aria-label="과제 편집 닫기">×</button></div>
+    <div id="taskTabs" class="tabs" role="tablist" aria-label="과제 편집 영역"><button type="button" data-tab="overview" role="tab" aria-selected="true">기본 정보</button><button type="button" data-tab="body" role="tab" aria-selected="false">상세 내용</button><button type="button" data-tab="logs" role="tab" aria-selected="false">개발 로그</button><button type="button" data-tab="decisions" role="tab" aria-selected="false">의사결정</button><button type="button" data-tab="milestones" role="tab" aria-selected="false">마일스톤</button><button type="button" data-tab="releases" role="tab" aria-selected="false">릴리즈</button><button type="button" data-tab="history" role="tab" aria-selected="false">변경 이력</button></div>
+    <div id="taskFields" class="dialog-body"></div><p id="taskError" class="form-error" role="alert"></p>
+    <div class="dialog-footer"><button type="button" id="addChild">＋ 하위 작업</button><button type="button" id="archiveTask" class="subtle">보관하기</button><span class="spacer"></span><span id="draftState" class="muted"></span><button type="submit" class="primary" id="applyTask">변경 적용</button></div>
+  </form></dialog>
+  <dialog id="connectionDialog" aria-labelledby="connectionTitle"><form id="connectionForm" class="connection-form"><div class="dialog-head"><h2 id="connectionTitle">로컬 Git 연결</h2><button type="button" class="icon-button" data-close="connectionDialog" aria-label="연결 설정 닫기">×</button></div><p>저장소의 <strong>Start-GitHub-Sync.cmd</strong>를 한 번 실행한 뒤, 표시된 연결 코드를 입력하세요. Git 인증은 PC의 기존 설정을 사용합니다.</p><label>포트<input id="helperPort" type="number" value="8765" min="1024" max="65535" required></label><label>이번 실행의 연결 코드<input id="helperToken" type="password" autocomplete="off" required></label><p class="muted">연결 코드는 현재 탭에서만 사용합니다. 연결 시 해당 저장소의 최신 파일을 불러옵니다.</p><p id="connectionError" class="form-error" role="alert"></p><div class="dialog-footer"><button type="submit" class="primary">연결하고 데이터 열기</button></div></form></dialog>
+  <dialog id="publishDialog" aria-labelledby="publishTitle"><form id="publishForm"><div class="dialog-head"><div><span class="eyebrow">SAVE → COMMIT → PUSH</span><h2 id="publishTitle">GitHub에 변경 반영</h2></div><button type="button" class="icon-button" data-close="publishDialog" aria-label="GitHub 반영 닫기">×</button></div><div class="dialog-body"><p id="gitTarget"></p><label class="form-field">커밋 메시지<input id="commitMessage" minlength="3" maxlength="120" required value="docs: update development tasks"></label><ul id="publishFiles" class="file-list"></ul><details open><summary>변경 내용 확인</summary><pre id="gitDiff"></pre></details><p id="publishResult" role="status"></p></div><div class="dialog-footer"><button id="confirmPublish" type="submit" class="primary">저장 · 커밋 · 푸시</button></div></form></dialog>
+  <script id="bootstrap" type="application/json">{"index.json": "{\n  \"schemaVersion\": 1,\n  \"generatedAt\": \"2026-09-10T00:00:00Z\",\n  \"demo\": true,\n  \"tasks\": [\n    {\n      \"id\": \"TASK-DEMO-A\",\n      \"file\": \"tasks/TASK-DEMO-A.json\",\n      \"title\": \"샘플 프로젝트 A\",\n      \"category\": \"project\",\n      \"status\": \"in_progress\",\n      \"progress\": 50,\n      \"parentId\": null,\n      \"order\": 0,\n      \"startDate\": \"2026-09-01\",\n      \"targetEndDate\": \"2026-11-30\",\n      \"actualEndDate\": null\n    },\n    {\n      \"id\": \"TASK-DEMO-A1\",\n      \"file\": \"tasks/TASK-DEMO-A1.json\",\n      \"title\": \"기능 설계\",\n      \"category\": \"project\",\n      \"status\": \"completed\",\n      \"progress\": 100,\n      \"parentId\": \"TASK-DEMO-A\",\n      \"order\": 0,\n      \"startDate\": \"2026-09-01\",\n      \"targetEndDate\": \"2026-09-09\",\n      \"actualEndDate\": \"2026-09-09\"\n    },\n    {\n      \"id\": \"TASK-DEMO-A2\",\n      \"file\": \"tasks/TASK-DEMO-A2.json\",\n      \"title\": \"핵심 기능 구현\",\n      \"category\": \"project\",\n      \"status\": \"in_progress\",\n      \"progress\": 55,\n      \"parentId\": \"TASK-DEMO-A\",\n      \"order\": 1,\n      \"startDate\": \"2026-09-07\",\n      \"targetEndDate\": \"2026-10-16\",\n      \"actualEndDate\": null\n    },\n    {\n      \"id\": \"TASK-DEMO-A3\",\n      \"file\": \"tasks/TASK-DEMO-A3.json\",\n      \"title\": \"사용 가이드 작성\",\n      \"category\": \"project\",\n      \"status\": \"planned\",\n      \"progress\": 0,\n      \"parentId\": \"TASK-DEMO-A\",\n      \"order\": 2,\n      \"startDate\": \"2026-10-19\",\n      \"targetEndDate\": \"2026-11-30\",\n      \"actualEndDate\": null\n    },\n    {\n      \"id\": \"TASK-DEMO-B\",\n      \"file\": \"tasks/TASK-DEMO-B.json\",\n      \"title\": \"샘플 프로젝트 B\",\n      \"category\": \"assigned\",\n      \"status\": \"in_progress\",\n      \"progress\": 30,\n      \"parentId\": null,\n      \"order\": 1,\n      \"startDate\": \"2026-09-03\",\n      \"targetEndDate\": \"2026-10-30\",\n      \"actualEndDate\": null\n    },\n    {\n      \"id\": \"TASK-DEMO-B1\",\n      \"file\": \"tasks/TASK-DEMO-B1.json\",\n      \"title\": \"현황 분석\",\n      \"category\": \"assigned\",\n      \"status\": \"in_progress\",\n      \"progress\": 60,\n      \"parentId\": \"TASK-DEMO-B\",\n      \"order\": 0,\n      \"startDate\": \"2026-09-03\",\n      \"targetEndDate\": \"2026-09-25\",\n      \"actualEndDate\": null\n    },\n    {\n      \"id\": \"TASK-DEMO-B2\",\n      \"file\": \"tasks/TASK-DEMO-B2.json\",\n      \"title\": \"개선안 검증\",\n      \"category\": \"assigned\",\n      \"status\": \"planned\",\n      \"progress\": 0,\n      \"parentId\": \"TASK-DEMO-B\",\n      \"order\": 1,\n      \"startDate\": \"2026-09-28\",\n      \"targetEndDate\": \"2026-10-30\",\n      \"actualEndDate\": null\n    },\n    {\n      \"id\": \"TASK-DEMO-C\",\n      \"file\": \"tasks/TASK-DEMO-C.json\",\n      \"title\": \"샘플 프로젝트 C\",\n      \"category\": \"personal\",\n      \"status\": \"planned\",\n      \"progress\": 15,\n      \"parentId\": null,\n      \"order\": 2,\n      \"startDate\": \"2026-09-10\",\n      \"targetEndDate\": \"2026-12-11\",\n      \"actualEndDate\": null\n    },\n    {\n      \"id\": \"TASK-DEMO-C1\",\n      \"file\": \"tasks/TASK-DEMO-C1.json\",\n      \"title\": \"자료 조사\",\n      \"category\": \"personal\",\n      \"status\": \"in_progress\",\n      \"progress\": 30,\n      \"parentId\": \"TASK-DEMO-C\",\n      \"order\": 0,\n      \"startDate\": \"2026-09-10\",\n      \"targetEndDate\": \"2026-10-02\",\n      \"actualEndDate\": null\n    },\n    {\n      \"id\": \"TASK-DEMO-C2\",\n      \"file\": \"tasks/TASK-DEMO-C2.json\",\n      \"title\": \"시제품 제작\",\n      \"category\": \"personal\",\n      \"status\": \"planned\",\n      \"progress\": 0,\n      \"parentId\": \"TASK-DEMO-C\",\n      \"order\": 1,\n      \"startDate\": \"2026-10-05\",\n      \"targetEndDate\": \"2026-12-11\",\n      \"actualEndDate\": null\n    }\n  ]\n}\n", "tasks/TASK-DEMO-A.json": "{\n  \"schemaVersion\": 1,\n  \"id\": \"TASK-DEMO-A\",\n  \"parentId\": null,\n  \"order\": 0,\n  \"title\": \"샘플 프로젝트 A\",\n  \"category\": \"project\",\n  \"status\": \"in_progress\",\n  \"progress\": 50,\n  \"startDate\": \"2026-09-01\",\n  \"targetEndDate\": \"2026-11-30\",\n  \"actualEndDate\": null,\n  \"summary\": \"기능 체험용 가상 프로젝트입니다. 실제 업무와 무관합니다.\",\n  \"tags\": [\n    \"샘플\"\n  ],\n  \"owners\": [\n    \"나\"\n  ],\n  \"links\": [],\n  \"bodyFile\": \"notes/TASK-DEMO-A.md\",\n  \"images\": [],\n  \"milestones\": [\n    {\n      \"id\": \"MS-TASK-DEMO-A\",\n      \"title\": \"중간 점검\",\n      \"date\": \"2026-09-25\",\n      \"status\": \"planned\",\n      \"description\": \"일정 및 완료 기준을 함께 확인합니다.\"\n    }\n  ],\n  \"logs\": [\n    {\n      \"id\": \"LOG-TASK-DEMO-A\",\n      \"at\": \"2026-09-10T09:00:00+09:00\",\n      \"type\": \"development\",\n      \"title\": \"샘플 작업 등록\",\n      \"content\": \"실제 업무명과 내부 자료가 없는 공개 데모입니다.\",\n      \"tags\": []\n    }\n  ],\n  \"decisions\": [\n    {\n      \"id\": \"DEC-TASK-DEMO-A\",\n      \"date\": \"2026-09-10\",\n      \"title\": \"작업 분할\",\n      \"decision\": \"작은 작업 단위로 나누어 관리합니다.\",\n      \"reason\": \"진행 상황을 쉽게 확인하기 위해서입니다.\",\n      \"alternatives\": [],\n      \"impact\": \"하위 작업 진행률을 상위 과제에 집계합니다.\"\n    }\n  ],\n  \"releases\": [\n    {\n      \"id\": \"REL-TASK-DEMO-A\",\n      \"title\": \"첫 번째 검토본\",\n      \"version\": \"0.1.0\",\n      \"releaseDate\": \"2026-11-30\",\n      \"status\": \"planned\",\n      \"summary\": \"샘플 릴리즈 계획\",\n      \"notes\": [\n        \"기능 검토\",\n        \"가이드 확인\"\n      ]\n    }\n  ],\n  \"history\": [],\n  \"archived\": false,\n  \"createdAt\": \"2026-09-10T00:00:00Z\",\n  \"updatedAt\": \"2026-09-10T00:00:00Z\"\n}\n", "notes/TASK-DEMO-A.md": "# 샘플 프로젝트 A\n\n\u003c!-- dhd:description -->\n이 문서는 대시보드 사용 방법을 보여 주는 가상 샘플입니다.\n\n목표와 작업 내용을 입력하고, 완료 기준을 체크해 보세요.\n\u003c!-- /dhd:description -->\n\n\u003c!-- dhd:checklist -->\n- [x] 샘플 데이터 확인\n- [ ] 작업 내용 작성\n- [ ] 결과 검토\n\u003c!-- /dhd:checklist -->\n", "tasks/TASK-DEMO-A1.json": "{\n  \"schemaVersion\": 1,\n  \"id\": \"TASK-DEMO-A1\",\n  \"parentId\": \"TASK-DEMO-A\",\n  \"order\": 0,\n  \"title\": \"기능 설계\",\n  \"category\": \"project\",\n  \"status\": \"completed\",\n  \"progress\": 100,\n  \"startDate\": \"2026-09-01\",\n  \"targetEndDate\": \"2026-09-09\",\n  \"actualEndDate\": \"2026-09-09\",\n  \"summary\": \"웹 폼에서 자유롭게 수정할 수 있는 예시 작업입니다.\",\n  \"tags\": [\n    \"샘플\"\n  ],\n  \"owners\": [\n    \"나\"\n  ],\n  \"links\": [],\n  \"bodyFile\": \"notes/TASK-DEMO-A1.md\",\n  \"images\": [],\n  \"milestones\": [],\n  \"logs\": [\n    {\n      \"id\": \"LOG-TASK-DEMO-A1\",\n      \"at\": \"2026-09-10T09:00:00+09:00\",\n      \"type\": \"development\",\n      \"title\": \"샘플 작업 등록\",\n      \"content\": \"실제 업무명과 내부 자료가 없는 공개 데모입니다.\",\n      \"tags\": []\n    }\n  ],\n  \"decisions\": [],\n  \"releases\": [],\n  \"history\": [],\n  \"archived\": false,\n  \"createdAt\": \"2026-09-10T00:00:00Z\",\n  \"updatedAt\": \"2026-09-10T00:00:00Z\"\n}\n", "notes/TASK-DEMO-A1.md": "# 기능 설계\n\n\u003c!-- dhd:description -->\n이 문서는 대시보드 사용 방법을 보여 주는 가상 샘플입니다.\n\n목표와 작업 내용을 입력하고, 완료 기준을 체크해 보세요.\n\u003c!-- /dhd:description -->\n\n\u003c!-- dhd:checklist -->\n- [x] 샘플 데이터 확인\n- [ ] 작업 내용 작성\n- [ ] 결과 검토\n\u003c!-- /dhd:checklist -->\n", "tasks/TASK-DEMO-A2.json": "{\n  \"schemaVersion\": 1,\n  \"id\": \"TASK-DEMO-A2\",\n  \"parentId\": \"TASK-DEMO-A\",\n  \"order\": 1,\n  \"title\": \"핵심 기능 구현\",\n  \"category\": \"project\",\n  \"status\": \"in_progress\",\n  \"progress\": 55,\n  \"startDate\": \"2026-09-07\",\n  \"targetEndDate\": \"2026-10-16\",\n  \"actualEndDate\": null,\n  \"summary\": \"웹 폼에서 자유롭게 수정할 수 있는 예시 작업입니다.\",\n  \"tags\": [\n    \"샘플\"\n  ],\n  \"owners\": [\n    \"나\"\n  ],\n  \"links\": [],\n  \"bodyFile\": \"notes/TASK-DEMO-A2.md\",\n  \"images\": [],\n  \"milestones\": [],\n  \"logs\": [\n    {\n      \"id\": \"LOG-TASK-DEMO-A2\",\n      \"at\": \"2026-09-10T09:00:00+09:00\",\n      \"type\": \"development\",\n      \"title\": \"샘플 작업 등록\",\n      \"content\": \"실제 업무명과 내부 자료가 없는 공개 데모입니다.\",\n      \"tags\": []\n    }\n  ],\n  \"decisions\": [],\n  \"releases\": [],\n  \"history\": [],\n  \"archived\": false,\n  \"createdAt\": \"2026-09-10T00:00:00Z\",\n  \"updatedAt\": \"2026-09-10T00:00:00Z\"\n}\n", "notes/TASK-DEMO-A2.md": "# 핵심 기능 구현\n\n\u003c!-- dhd:description -->\n이 문서는 대시보드 사용 방법을 보여 주는 가상 샘플입니다.\n\n목표와 작업 내용을 입력하고, 완료 기준을 체크해 보세요.\n\u003c!-- /dhd:description -->\n\n\u003c!-- dhd:checklist -->\n- [x] 샘플 데이터 확인\n- [ ] 작업 내용 작성\n- [ ] 결과 검토\n\u003c!-- /dhd:checklist -->\n", "tasks/TASK-DEMO-A3.json": "{\n  \"schemaVersion\": 1,\n  \"id\": \"TASK-DEMO-A3\",\n  \"parentId\": \"TASK-DEMO-A\",\n  \"order\": 2,\n  \"title\": \"사용 가이드 작성\",\n  \"category\": \"project\",\n  \"status\": \"planned\",\n  \"progress\": 0,\n  \"startDate\": \"2026-10-19\",\n  \"targetEndDate\": \"2026-11-30\",\n  \"actualEndDate\": null,\n  \"summary\": \"웹 폼에서 자유롭게 수정할 수 있는 예시 작업입니다.\",\n  \"tags\": [\n    \"샘플\"\n  ],\n  \"owners\": [\n    \"나\"\n  ],\n  \"links\": [],\n  \"bodyFile\": \"notes/TASK-DEMO-A3.md\",\n  \"images\": [],\n  \"milestones\": [],\n  \"logs\": [\n    {\n      \"id\": \"LOG-TASK-DEMO-A3\",\n      \"at\": \"2026-09-10T09:00:00+09:00\",\n      \"type\": \"development\",\n      \"title\": \"샘플 작업 등록\",\n      \"content\": \"실제 업무명과 내부 자료가 없는 공개 데모입니다.\",\n      \"tags\": []\n    }\n  ],\n  \"decisions\": [],\n  \"releases\": [],\n  \"history\": [],\n  \"archived\": false,\n  \"createdAt\": \"2026-09-10T00:00:00Z\",\n  \"updatedAt\": \"2026-09-10T00:00:00Z\"\n}\n", "notes/TASK-DEMO-A3.md": "# 사용 가이드 작성\n\n\u003c!-- dhd:description -->\n이 문서는 대시보드 사용 방법을 보여 주는 가상 샘플입니다.\n\n목표와 작업 내용을 입력하고, 완료 기준을 체크해 보세요.\n\u003c!-- /dhd:description -->\n\n\u003c!-- dhd:checklist -->\n- [x] 샘플 데이터 확인\n- [ ] 작업 내용 작성\n- [ ] 결과 검토\n\u003c!-- /dhd:checklist -->\n", "tasks/TASK-DEMO-B.json": "{\n  \"schemaVersion\": 1,\n  \"id\": \"TASK-DEMO-B\",\n  \"parentId\": null,\n  \"order\": 1,\n  \"title\": \"샘플 프로젝트 B\",\n  \"category\": \"assigned\",\n  \"status\": \"in_progress\",\n  \"progress\": 30,\n  \"startDate\": \"2026-09-03\",\n  \"targetEndDate\": \"2026-10-30\",\n  \"actualEndDate\": null,\n  \"summary\": \"기능 체험용 가상 프로젝트입니다. 실제 업무와 무관합니다.\",\n  \"tags\": [\n    \"샘플\"\n  ],\n  \"owners\": [\n    \"나\"\n  ],\n  \"links\": [],\n  \"bodyFile\": \"notes/TASK-DEMO-B.md\",\n  \"images\": [],\n  \"milestones\": [\n    {\n      \"id\": \"MS-TASK-DEMO-B\",\n      \"title\": \"중간 점검\",\n      \"date\": \"2026-09-25\",\n      \"status\": \"planned\",\n      \"description\": \"일정 및 완료 기준을 함께 확인합니다.\"\n    }\n  ],\n  \"logs\": [\n    {\n      \"id\": \"LOG-TASK-DEMO-B\",\n      \"at\": \"2026-09-10T09:00:00+09:00\",\n      \"type\": \"development\",\n      \"title\": \"샘플 작업 등록\",\n      \"content\": \"실제 업무명과 내부 자료가 없는 공개 데모입니다.\",\n      \"tags\": []\n    }\n  ],\n  \"decisions\": [\n    {\n      \"id\": \"DEC-TASK-DEMO-B\",\n      \"date\": \"2026-09-10\",\n      \"title\": \"작업 분할\",\n      \"decision\": \"작은 작업 단위로 나누어 관리합니다.\",\n      \"reason\": \"진행 상황을 쉽게 확인하기 위해서입니다.\",\n      \"alternatives\": [],\n      \"impact\": \"하위 작업 진행률을 상위 과제에 집계합니다.\"\n    }\n  ],\n  \"releases\": [\n    {\n      \"id\": \"REL-TASK-DEMO-B\",\n      \"title\": \"첫 번째 검토본\",\n      \"version\": \"0.1.0\",\n      \"releaseDate\": \"2026-10-30\",\n      \"status\": \"planned\",\n      \"summary\": \"샘플 릴리즈 계획\",\n      \"notes\": [\n        \"기능 검토\",\n        \"가이드 확인\"\n      ]\n    }\n  ],\n  \"history\": [],\n  \"archived\": false,\n  \"createdAt\": \"2026-09-10T00:00:00Z\",\n  \"updatedAt\": \"2026-09-10T00:00:00Z\"\n}\n", "notes/TASK-DEMO-B.md": "# 샘플 프로젝트 B\n\n\u003c!-- dhd:description -->\n이 문서는 대시보드 사용 방법을 보여 주는 가상 샘플입니다.\n\n목표와 작업 내용을 입력하고, 완료 기준을 체크해 보세요.\n\u003c!-- /dhd:description -->\n\n\u003c!-- dhd:checklist -->\n- [x] 샘플 데이터 확인\n- [ ] 작업 내용 작성\n- [ ] 결과 검토\n\u003c!-- /dhd:checklist -->\n", "tasks/TASK-DEMO-B1.json": "{\n  \"schemaVersion\": 1,\n  \"id\": \"TASK-DEMO-B1\",\n  \"parentId\": \"TASK-DEMO-B\",\n  \"order\": 0,\n  \"title\": \"현황 분석\",\n  \"category\": \"assigned\",\n  \"status\": \"in_progress\",\n  \"progress\": 60,\n  \"startDate\": \"2026-09-03\",\n  \"targetEndDate\": \"2026-09-25\",\n  \"actualEndDate\": null,\n  \"summary\": \"웹 폼에서 자유롭게 수정할 수 있는 예시 작업입니다.\",\n  \"tags\": [\n    \"샘플\"\n  ],\n  \"owners\": [\n    \"나\"\n  ],\n  \"links\": [],\n  \"bodyFile\": \"notes/TASK-DEMO-B1.md\",\n  \"images\": [],\n  \"milestones\": [],\n  \"logs\": [\n    {\n      \"id\": \"LOG-TASK-DEMO-B1\",\n      \"at\": \"2026-09-10T09:00:00+09:00\",\n      \"type\": \"development\",\n      \"title\": \"샘플 작업 등록\",\n      \"content\": \"실제 업무명과 내부 자료가 없는 공개 데모입니다.\",\n      \"tags\": []\n    }\n  ],\n  \"decisions\": [],\n  \"releases\": [],\n  \"history\": [],\n  \"archived\": false,\n  \"createdAt\": \"2026-09-10T00:00:00Z\",\n  \"updatedAt\": \"2026-09-10T00:00:00Z\"\n}\n", "notes/TASK-DEMO-B1.md": "# 현황 분석\n\n\u003c!-- dhd:description -->\n이 문서는 대시보드 사용 방법을 보여 주는 가상 샘플입니다.\n\n목표와 작업 내용을 입력하고, 완료 기준을 체크해 보세요.\n\u003c!-- /dhd:description -->\n\n\u003c!-- dhd:checklist -->\n- [x] 샘플 데이터 확인\n- [ ] 작업 내용 작성\n- [ ] 결과 검토\n\u003c!-- /dhd:checklist -->\n", "tasks/TASK-DEMO-B2.json": "{\n  \"schemaVersion\": 1,\n  \"id\": \"TASK-DEMO-B2\",\n  \"parentId\": \"TASK-DEMO-B\",\n  \"order\": 1,\n  \"title\": \"개선안 검증\",\n  \"category\": \"assigned\",\n  \"status\": \"planned\",\n  \"progress\": 0,\n  \"startDate\": \"2026-09-28\",\n  \"targetEndDate\": \"2026-10-30\",\n  \"actualEndDate\": null,\n  \"summary\": \"웹 폼에서 자유롭게 수정할 수 있는 예시 작업입니다.\",\n  \"tags\": [\n    \"샘플\"\n  ],\n  \"owners\": [\n    \"나\"\n  ],\n  \"links\": [],\n  \"bodyFile\": \"notes/TASK-DEMO-B2.md\",\n  \"images\": [],\n  \"milestones\": [],\n  \"logs\": [\n    {\n      \"id\": \"LOG-TASK-DEMO-B2\",\n      \"at\": \"2026-09-10T09:00:00+09:00\",\n      \"type\": \"development\",\n      \"title\": \"샘플 작업 등록\",\n      \"content\": \"실제 업무명과 내부 자료가 없는 공개 데모입니다.\",\n      \"tags\": []\n    }\n  ],\n  \"decisions\": [],\n  \"releases\": [],\n  \"history\": [],\n  \"archived\": false,\n  \"createdAt\": \"2026-09-10T00:00:00Z\",\n  \"updatedAt\": \"2026-09-10T00:00:00Z\"\n}\n", "notes/TASK-DEMO-B2.md": "# 개선안 검증\n\n\u003c!-- dhd:description -->\n이 문서는 대시보드 사용 방법을 보여 주는 가상 샘플입니다.\n\n목표와 작업 내용을 입력하고, 완료 기준을 체크해 보세요.\n\u003c!-- /dhd:description -->\n\n\u003c!-- dhd:checklist -->\n- [x] 샘플 데이터 확인\n- [ ] 작업 내용 작성\n- [ ] 결과 검토\n\u003c!-- /dhd:checklist -->\n", "tasks/TASK-DEMO-C.json": "{\n  \"schemaVersion\": 1,\n  \"id\": \"TASK-DEMO-C\",\n  \"parentId\": null,\n  \"order\": 2,\n  \"title\": \"샘플 프로젝트 C\",\n  \"category\": \"personal\",\n  \"status\": \"planned\",\n  \"progress\": 15,\n  \"startDate\": \"2026-09-10\",\n  \"targetEndDate\": \"2026-12-11\",\n  \"actualEndDate\": null,\n  \"summary\": \"기능 체험용 가상 프로젝트입니다. 실제 업무와 무관합니다.\",\n  \"tags\": [\n    \"샘플\"\n  ],\n  \"owners\": [\n    \"나\"\n  ],\n  \"links\": [],\n  \"bodyFile\": \"notes/TASK-DEMO-C.md\",\n  \"images\": [],\n  \"milestones\": [\n    {\n      \"id\": \"MS-TASK-DEMO-C\",\n      \"title\": \"중간 점검\",\n      \"date\": \"2026-09-25\",\n      \"status\": \"planned\",\n      \"description\": \"일정 및 완료 기준을 함께 확인합니다.\"\n    }\n  ],\n  \"logs\": [\n    {\n      \"id\": \"LOG-TASK-DEMO-C\",\n      \"at\": \"2026-09-10T09:00:00+09:00\",\n      \"type\": \"development\",\n      \"title\": \"샘플 작업 등록\",\n      \"content\": \"실제 업무명과 내부 자료가 없는 공개 데모입니다.\",\n      \"tags\": []\n    }\n  ],\n  \"decisions\": [\n    {\n      \"id\": \"DEC-TASK-DEMO-C\",\n      \"date\": \"2026-09-10\",\n      \"title\": \"작업 분할\",\n      \"decision\": \"작은 작업 단위로 나누어 관리합니다.\",\n      \"reason\": \"진행 상황을 쉽게 확인하기 위해서입니다.\",\n      \"alternatives\": [],\n      \"impact\": \"하위 작업 진행률을 상위 과제에 집계합니다.\"\n    }\n  ],\n  \"releases\": [\n    {\n      \"id\": \"REL-TASK-DEMO-C\",\n      \"title\": \"첫 번째 검토본\",\n      \"version\": \"0.1.0\",\n      \"releaseDate\": \"2026-12-11\",\n      \"status\": \"planned\",\n      \"summary\": \"샘플 릴리즈 계획\",\n      \"notes\": [\n        \"기능 검토\",\n        \"가이드 확인\"\n      ]\n    }\n  ],\n  \"history\": [],\n  \"archived\": false,\n  \"createdAt\": \"2026-09-10T00:00:00Z\",\n  \"updatedAt\": \"2026-09-10T00:00:00Z\"\n}\n", "notes/TASK-DEMO-C.md": "# 샘플 프로젝트 C\n\n\u003c!-- dhd:description -->\n이 문서는 대시보드 사용 방법을 보여 주는 가상 샘플입니다.\n\n목표와 작업 내용을 입력하고, 완료 기준을 체크해 보세요.\n\u003c!-- /dhd:description -->\n\n\u003c!-- dhd:checklist -->\n- [x] 샘플 데이터 확인\n- [ ] 작업 내용 작성\n- [ ] 결과 검토\n\u003c!-- /dhd:checklist -->\n", "tasks/TASK-DEMO-C1.json": "{\n  \"schemaVersion\": 1,\n  \"id\": \"TASK-DEMO-C1\",\n  \"parentId\": \"TASK-DEMO-C\",\n  \"order\": 0,\n  \"title\": \"자료 조사\",\n  \"category\": \"personal\",\n  \"status\": \"in_progress\",\n  \"progress\": 30,\n  \"startDate\": \"2026-09-10\",\n  \"targetEndDate\": \"2026-10-02\",\n  \"actualEndDate\": null,\n  \"summary\": \"웹 폼에서 자유롭게 수정할 수 있는 예시 작업입니다.\",\n  \"tags\": [\n    \"샘플\"\n  ],\n  \"owners\": [\n    \"나\"\n  ],\n  \"links\": [],\n  \"bodyFile\": \"notes/TASK-DEMO-C1.md\",\n  \"images\": [],\n  \"milestones\": [],\n  \"logs\": [\n    {\n      \"id\": \"LOG-TASK-DEMO-C1\",\n      \"at\": \"2026-09-10T09:00:00+09:00\",\n      \"type\": \"development\",\n      \"title\": \"샘플 작업 등록\",\n      \"content\": \"실제 업무명과 내부 자료가 없는 공개 데모입니다.\",\n      \"tags\": []\n    }\n  ],\n  \"decisions\": [],\n  \"releases\": [],\n  \"history\": [],\n  \"archived\": false,\n  \"createdAt\": \"2026-09-10T00:00:00Z\",\n  \"updatedAt\": \"2026-09-10T00:00:00Z\"\n}\n", "notes/TASK-DEMO-C1.md": "# 자료 조사\n\n\u003c!-- dhd:description -->\n이 문서는 대시보드 사용 방법을 보여 주는 가상 샘플입니다.\n\n목표와 작업 내용을 입력하고, 완료 기준을 체크해 보세요.\n\u003c!-- /dhd:description -->\n\n\u003c!-- dhd:checklist -->\n- [x] 샘플 데이터 확인\n- [ ] 작업 내용 작성\n- [ ] 결과 검토\n\u003c!-- /dhd:checklist -->\n", "tasks/TASK-DEMO-C2.json": "{\n  \"schemaVersion\": 1,\n  \"id\": \"TASK-DEMO-C2\",\n  \"parentId\": \"TASK-DEMO-C\",\n  \"order\": 1,\n  \"title\": \"시제품 제작\",\n  \"category\": \"personal\",\n  \"status\": \"planned\",\n  \"progress\": 0,\n  \"startDate\": \"2026-10-05\",\n  \"targetEndDate\": \"2026-12-11\",\n  \"actualEndDate\": null,\n  \"summary\": \"웹 폼에서 자유롭게 수정할 수 있는 예시 작업입니다.\",\n  \"tags\": [\n    \"샘플\"\n  ],\n  \"owners\": [\n    \"나\"\n  ],\n  \"links\": [],\n  \"bodyFile\": \"notes/TASK-DEMO-C2.md\",\n  \"images\": [],\n  \"milestones\": [],\n  \"logs\": [\n    {\n      \"id\": \"LOG-TASK-DEMO-C2\",\n      \"at\": \"2026-09-10T09:00:00+09:00\",\n      \"type\": \"development\",\n      \"title\": \"샘플 작업 등록\",\n      \"content\": \"실제 업무명과 내부 자료가 없는 공개 데모입니다.\",\n      \"tags\": []\n    }\n  ],\n  \"decisions\": [],\n  \"releases\": [],\n  \"history\": [],\n  \"archived\": false,\n  \"createdAt\": \"2026-09-10T00:00:00Z\",\n  \"updatedAt\": \"2026-09-10T00:00:00Z\"\n}\n", "notes/TASK-DEMO-C2.md": "# 시제품 제작\n\n\u003c!-- dhd:description -->\n이 문서는 대시보드 사용 방법을 보여 주는 가상 샘플입니다.\n\n목표와 작업 내용을 입력하고, 완료 기준을 체크해 보세요.\n\u003c!-- /dhd:description -->\n\n\u003c!-- dhd:checklist -->\n- [x] 샘플 데이터 확인\n- [ ] 작업 내용 작성\n- [ ] 결과 검토\n\u003c!-- /dhd:checklist -->\n"}</script>
+  <script>window.DHD_CONFIG = {"dataBase": "./data/"};</script>
+  <script>/* Domain and portable storage rules. No DOM or Git-provider dependency. */
+(function (scope) {
+  'use strict';
+  const categories = { assigned: '수명 업무', personal: '개인 개발', project: '프로젝트' };
+  const statuses = { planned: '예정', in_progress: '진행 중', blocked: '차단됨', on_hold: '보류', completed: '완료', cancelled: '취소' };
+  const DAY = 86400000;
+  const clone = value => JSON.parse(JSON.stringify(value));
+  const json = value => JSON.stringify(value, null, 2) + '\n';
+  const bytes = text => new TextEncoder().encode(text);
+  const text = value => new TextDecoder('utf-8', { fatal: true }).decode(value);
+  const plain = value => value && typeof value === 'object' && !Array.isArray(value);
+  function day(value) {
+    if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return null;
+    const [y, m, d] = value.split('-').map(Number);
+    if (y < 100 || y > 9999) return null;
+    const n = Date.UTC(y, m - 1, d), test = new Date(n);
+    return test.getUTCFullYear() === y && test.getUTCMonth() === m - 1 && test.getUTCDate() === d ? n / DAY : null;
+  }
+  function today() { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; }
+  function iso(n) { return new Date(n * DAY).toISOString().slice(0, 10); }
+  function safePath(path) {
+    if (typeof path !== 'string' || path.length > 220 || !/^[A-Za-z0-9_./-]+$/.test(path) || path.startsWith('/') || path.split('/').some(p => !p || p === '.' || p === '..')) throw Error('허용되지 않는 파일 경로입니다.');
+    if (!(path === 'index.json' || /^tasks\/TASK-[A-Z0-9_-]+\.json$/.test(path) || /^notes\/TASK-[A-Z0-9_-]+\.md$/.test(path) || /^images\/TASK-[A-Z0-9_-]+\/[A-Za-z0-9_-]+\.(png|jpg|jpeg|webp|gif)$/.test(path))) throw Error('대시보드 데이터 파일만 사용할 수 있습니다.');
+    return path;
+  }
+  function validateTask(t) {
+    if (!plain(t)) throw Error('과제 문서는 객체여야 합니다.');
+    if (t.schemaVersion !== 1) throw Error('지원하지 않는 schemaVersion입니다.');
+    if (typeof t.id !== 'string' || !/^TASK-[A-Z0-9_-]+$/.test(t.id)) throw Error('과제 ID가 올바르지 않습니다.');
+    if (typeof t.title !== 'string' || !t.title.trim() || t.title.length > 300) throw Error('과제명은 1~300자여야 합니다.');
+    if (!Object.hasOwn(categories, t.category) || !Object.hasOwn(statuses, t.status)) throw Error('분류 또는 상태가 올바르지 않습니다.');
+    if (!Number.isInteger(t.progress) || t.progress < 0 || t.progress > 100) throw Error('진행률은 0~100 정수여야 합니다.');
+    if (day(t.startDate) === null) throw Error('시작일이 올바르지 않습니다.');
+    for (const key of ['targetEndDate', 'actualEndDate']) {
+      if (!Object.hasOwn(t, key)) throw Error(`${key} 필드가 필요합니다.`);
+      if (t[key] !== null && day(t[key]) === null) throw Error('종료일이 올바르지 않습니다.');
+      if (t[key] && day(t[key]) < day(t.startDate)) throw Error('종료일은 시작일보다 빠를 수 없습니다.');
+    }
+    if (t.parentId != null && (typeof t.parentId !== 'string' || !/^TASK-[A-Z0-9_-]+$/.test(t.parentId) || t.parentId === t.id)) throw Error('상위 과제가 올바르지 않습니다.');
+    if (t.order != null && (!Number.isFinite(t.order) || t.order < 0)) throw Error('과제 순서가 올바르지 않습니다.');
+    for (const key of ['milestones', 'logs', 'decisions', 'releases']) {
+      if (!Array.isArray(t[key]) || t[key].some(item => !plain(item))) throw Error(`${key} 항목이 올바르지 않습니다.`);
+    }
+    for (const key of ['tags', 'owners']) if (t[key] != null && (!Array.isArray(t[key]) || t[key].some(v => typeof v !== 'string'))) throw Error(`${key}는 문자열 목록이어야 합니다.`);
+    for (const [key, dateKey] of [['milestones', 'date'], ['decisions', 'date'], ['releases', 'releaseDate']]) for (const item of t[key]) {
+      if (item[dateKey] != null && day(item[dateKey]) === null) throw Error(`${key}의 날짜가 올바르지 않습니다.`);
+    }
+    if (t.bodyFile != null && t.bodyFile !== `notes/${t.id}.md`) throw Error('본문 파일은 과제별 notes 경로여야 합니다.');
+    if (t.images != null && (!Array.isArray(t.images) || t.images.some(v => !plain(v)))) throw Error('이미지 목록이 올바르지 않습니다.');
+    for (const img of t.images || []) if (!safePath(img.file).startsWith(`images/${t.id}/`)) throw Error('이미지 경로가 과제와 일치하지 않습니다.');
+    return t;
+  }
+  function normalize(raw) {
+    validateTask(raw);
+    const t = clone(raw);
+    for (const key of ['tags', 'owners', 'links', 'images', 'history']) if (!Array.isArray(t[key])) t[key] = [];
+    t.parentId ??= null; t.order ??= 0; t.summary ??= ''; t.archived ??= false;
+    return t;
+  }
+  function validateTree(tasks) {
+    const map = new Map();
+    for (const t of tasks) { validateTask(t); if (map.has(t.id)) throw Error(`중복 ID: ${t.id}`); map.set(t.id, t); }
+    for (const t of tasks) {
+      const seen = new Set([t.id]); let cursor = t;
+      while (cursor.parentId) {
+        if (!map.has(cursor.parentId)) throw Error(`${t.title}: 상위 과제가 없습니다.`);
+        if (seen.has(cursor.parentId)) throw Error('과제 계층이 순환합니다.');
+        seen.add(cursor.parentId); cursor = map.get(cursor.parentId);
+      }
+    }
+    return true;
+  }
+  function children(tasks, parentId = null) { return tasks.filter(t => (t.parentId || null) === parentId).sort((a, b) => (a.order || 0) - (b.order || 0) || a.id.localeCompare(b.id)); }
+  function descendants(tasks, id) { const result = new Set(); const queue = [id]; while (queue.length) for (const t of children(tasks, queue.shift())) { if (!result.has(t.id)) { result.add(t.id); queue.push(t.id); } } return result; }
+  function progress(tasks, task) {
+    const childrenByParent = new Map();
+    for (const t of tasks) { const list = childrenByParent.get(t.parentId) || []; list.push(t); childrenByParent.set(t.parentId, list); }
+    const active = new Set();
+    function leaves(t) {
+      if (active.has(t.id)) return [t.progress];
+      active.add(t.id);
+      const list = (childrenByParent.get(t.id) || []).filter(x => !x.archived && x.status !== 'cancelled');
+      const result = list.length ? list.flatMap(leaves) : [t.progress]; active.delete(t.id); return result;
+    }
+    const values = leaves(task); return Math.round(values.reduce((a, b) => a + b, 0) / values.length);
+  }
+  function move(tasks, id, parentId, beforeId = null) {
+    const t = tasks.find(x => x.id === id); if (!t) throw Error('과제를 찾을 수 없습니다.');
+    if (parentId && (!tasks.some(x => x.id === parentId) || parentId === id || descendants(tasks, id).has(parentId))) throw Error('자신이나 하위 작업 안으로 이동할 수 없습니다.');
+    const old = children(tasks, t.parentId).filter(x => x.id !== id); old.forEach((x, i) => x.order = i);
+    const list = children(tasks, parentId).filter(x => x.id !== id); const index = beforeId ? list.findIndex(x => x.id === beforeId) : -1;
+    t.parentId = parentId; list.splice(index < 0 ? list.length : index, 0, t); list.forEach((x, i) => x.order = i); validateTree(tasks);
+  }
+  function endDate(task) { return task.status === 'completed' && task.actualEndDate ? task.actualEndDate : task.targetEndDate; }
+  function timeline(tasks) {
+    const dates = tasks.flatMap(t => [t.startDate, endDate(t), ...t.milestones.map(m => m.date), ...t.releases.map(r => r.releaseDate)]).map(day).filter(v => v !== null);
+    const first = new Date((dates.length ? Math.min(...dates) : day(today())) * DAY);
+    const last = new Date((dates.length ? Math.max(...dates) : day(today())) * DAY);
+    const start = Date.UTC(first.getUTCFullYear(), first.getUTCMonth(), 1) / DAY;
+    const end = Date.UTC(last.getUTCFullYear(), last.getUTCMonth() + 1, 1) / DAY;
+    const months = [];
+    for (let n = start; n < end;) { const d = new Date(n * DAY); const next = Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 1) / DAY; months.push({ start: n, days: next - n, label: `${d.getUTCFullYear()}.${String(d.getUTCMonth() + 1).padStart(2, '0')}` }); n = next; }
+    return { start, end, days: end - start, months };
+  }
+  function indexDocument(original, tasks) {
+    const entries = new Map((original.tasks || []).map(e => [e.id, e]));
+    return { ...clone(original), schemaVersion: 1, generatedAt: new Date().toISOString(), tasks: tasks.map(t => ({ ...entries.get(t.id), id: t.id, file: `tasks/${t.id}.json`, title: t.title, category: t.category, status: t.status, progress: t.progress, parentId: t.parentId || null, order: t.order || 0, startDate: t.startDate, targetEndDate: t.targetEndDate, actualEndDate: t.actualEndDate })) };
+  }
+  function parseBody(markdown = '') {
+    const read = key => new RegExp(`<!-- dhd:${key} -->\\r?\\n([\\s\\S]*?)\\r?\\n<!-- /dhd:${key} -->`).exec(markdown)?.[1];
+    return { description: read('description') ?? markdown, checklist: read('checklist') ?? '', extra: markdown };
+  }
+  function writeBody(original, description, checklist) {
+    let result = original || '';
+    for (const [key, value] of [['description', description], ['checklist', checklist]]) {
+      const block = `<!-- dhd:${key} -->\n${value}\n<!-- /dhd:${key} -->`;
+      const regex = new RegExp(`<!-- dhd:${key} -->\\r?\\n[\\s\\S]*?\\r?\\n<!-- /dhd:${key} -->`);
+      if (regex.test(result)) result = result.replace(regex, () => block);
+      else if (key === 'description' && !result.includes('<!-- dhd:')) result = block;
+      else result += '\n\n' + block;
+    }
+    return result.trimEnd() + '\n';
+  }
+  function crc32(data) { let crc = -1; for (const b of data) { crc ^= b; for (let i = 0; i < 8; i++) crc = (crc >>> 1) ^ ((crc & 1) ? 0xedb88320 : 0); } return (crc ^ -1) >>> 0; }
+  function zip(files) {
+    // ZIP STORE: portable, dependency-free, UTF-8 names and CRC32, no compression.
+    const chunks = [], directory = []; let offset = 0;
+    const record = (size) => { const data = new Uint8Array(size); return [data, new DataView(data.buffer)]; };
+    for (const [path, value] of files) {
+      const name = bytes(path), data = typeof value === 'string' ? bytes(value) : value; const crc = crc32(data);
+      const [header, v] = record(30); v.setUint32(0, 0x04034b50, true); v.setUint16(4, 20, true); v.setUint16(6, 0x800, true); v.setUint32(14, crc, true); v.setUint32(18, data.length, true); v.setUint32(22, data.length, true); v.setUint16(26, name.length, true);
+      chunks.push(header, name, data);
+      const [central, c] = record(46); c.setUint32(0, 0x02014b50, true); c.setUint16(4, 20, true); c.setUint16(6, 20, true); c.setUint16(8, 0x800, true); c.setUint32(16, crc, true); c.setUint32(20, data.length, true); c.setUint32(24, data.length, true); c.setUint16(28, name.length, true); c.setUint32(42, offset, true); directory.push(central, name); offset += header.length + name.length + data.length;
+    }
+    const size = directory.reduce((n, x) => n + x.length, 0); const [end, e] = record(22); e.setUint32(0, 0x06054b50, true); e.setUint16(8, files.size, true); e.setUint16(10, files.size, true); e.setUint32(12, size, true); e.setUint32(16, offset, true);
+    return new Blob([...chunks, ...directory, end], { type: 'application/zip' });
+  }
+  function equal(a, b) { return a === null || b === null ? a === b : a.length === b.length && a.every((v, i) => v === b[i]); }
+  scope.DHD = Object.freeze({ categories, statuses, DAY, clone, json, bytes, text, plain, day, today, iso, safePath, validateTask, normalize, validateTree, children, descendants, progress, move, endDate, timeline, indexDocument, parseBody, writeBody, crc32, zip, equal });
+})(globalThis);
+</script><script>(function (scope) {
+  'use strict';
+  const C = scope.DHD;
+  const b64 = data => { let s = ''; for (let i = 0; i < data.length; i += 16384) s += String.fromCharCode(...data.subarray(i, i + 16384)); return btoa(s); };
+  const unb64 = value => Uint8Array.from(atob(value), c => c.charCodeAt(0));
+  class Workspace {
+    constructor() { this.tasks = []; this.index = {}; this.files = new Map(); this.baseline = new Map(); this.errors = []; this.source = 'sample'; this.directory = null; this.helper = null; }
+    async load(reader, source) {
+      const rawIndex = await reader('index.json'); const index = JSON.parse(C.text(rawIndex));
+      if (!C.plain(index) || index.schemaVersion !== 1 || !Array.isArray(index.tasks)) throw Error('유효한 대시보드 데이터 폴더가 아닙니다.');
+      const files = new Map([['index.json', rawIndex]]), tasks = [], errors = [];
+      const read = async path => { C.safePath(path); const data = await reader(path); files.set(path, data); return data; };
+      // Limit concurrent reads; a broken document never prevents other rows loading.
+      for (let i = 0; i < index.tasks.length; i += 12) {
+        const results = await Promise.all(index.tasks.slice(i, i + 12).map(async entry => {
+          try {
+            if (!C.plain(entry) || !entry.id || entry.file !== `tasks/${entry.id}.json`) throw Error('index 파일 경로와 ID가 일치하지 않습니다.');
+            const t = C.normalize(JSON.parse(C.text(await read(entry.file))));
+            if (t.id !== entry.id) throw Error('문서 ID와 목록 ID가 일치하지 않습니다.');
+            if (t.bodyFile) await read(t.bodyFile);
+            for (const img of t.images) await read(img.file);
+            return { task: t };
+          } catch (e) { return { error: `${entry?.id || '알 수 없는 과제'}: ${e.message}` }; }
+        }));
+        results.forEach(r => r.error ? errors.push(r.error) : tasks.push(r.task));
+      }
+      try { C.validateTree(tasks); } catch (e) { errors.push(e.message); }
+      this.index = index; this.tasks = tasks; this.files = files; this.baseline = new Map(files); this.errors = errors; this.source = source;
+      return this;
+    }
+    body(t) { return t.bodyFile && this.files.has(t.bodyFile) ? C.text(this.files.get(t.bodyFile)) : ''; }
+    changed() { return new Map([...this.files].filter(([path, data]) => !C.equal(this.baseline.get(path) ?? null, data))); }
+    assertWritable() { if (this.errors.length) throw Error('불러오기 오류가 있는 데이터는 저장할 수 없습니다. 원본 파일을 복구한 뒤 다시 열어주세요.'); }
+    record(id, changes, bodyValues = null) {
+      this.assertWritable(); const old = this.tasks.find(t => t.id === id); if (!old) throw Error('과제를 찾을 수 없습니다.');
+      const edited = C.normalize({ ...C.clone(old), ...changes, id: old.id, schemaVersion: 1 });
+      const next = this.tasks.map(t => t.id === id ? edited : t); C.validateTree(next);
+      if (bodyValues) {
+        edited.bodyFile ||= `notes/${edited.id}.md`;
+        this.files.set(edited.bodyFile, C.bytes(C.writeBody(this.body(old), bodyValues.description, bodyValues.checklist)));
+      }
+      edited.updatedAt = new Date().toISOString(); edited.history = [...(old.history || []), { id: 'H-' + crypto.randomUUID(), at: edited.updatedAt, action: 'updated', title: '과제 내용 수정' }].slice(-300);
+      this.tasks = next; this.files.set(`tasks/${id}.json`, C.bytes(C.json(edited))); this.updateIndex(); return edited;
+    }
+    add(parentId = null) {
+      this.assertWritable(); const parent = this.tasks.find(t => t.id === parentId); const now = new Date().toISOString();
+      const t = C.normalize({ schemaVersion: 1, id: 'TASK-' + crypto.randomUUID().toUpperCase(), parentId, order: C.children(this.tasks, parentId).length, title: parent ? '새 하위 작업' : '새 메인 과제', category: parent?.category || 'personal', status: 'planned', progress: 0, startDate: C.today(), targetEndDate: null, actualEndDate: null, summary: '', owners: parent?.owners || ['나'], tags: [], links: [], milestones: [], logs: [], decisions: [], releases: [], createdAt: now, updatedAt: now });
+      t.bodyFile = `notes/${t.id}.md`; this.tasks.push(t); C.validateTree(this.tasks);
+      this.files.set(t.bodyFile, C.bytes(C.writeBody('', '', ''))); this.files.set(`tasks/${t.id}.json`, C.bytes(C.json(t))); this.updateIndex(); return t;
+    }
+    relocate(id, parentId, beforeId) {
+      this.assertWritable(); const copy = C.clone(this.tasks); C.move(copy, id, parentId, beforeId);
+      for (const t of copy) {
+        const old = this.tasks.find(x => x.id === t.id);
+        if (old.order !== t.order || old.parentId !== t.parentId) { t.updatedAt = new Date().toISOString(); this.files.set(`tasks/${t.id}.json`, C.bytes(C.json(t))); }
+      }
+      this.tasks = copy; this.updateIndex();
+    }
+    updateIndex() { this.index = C.indexDocument(this.index, this.tasks); this.files.set('index.json', C.bytes(C.json(this.index))); }
+    async image(task, file) {
+      this.assertWritable();
+      if (file.size > 8 * 1024 * 1024) throw Error('이미지는 한 장당 8MB까지 추가할 수 있습니다.');
+      const data = new Uint8Array(await file.arrayBuffer());
+      let ext = null; const ascii = part => String.fromCharCode(...part);
+      if (data[0] === 0x89 && ascii(data.slice(1, 8)) === 'PNG\r\n\x1a\n') ext = 'png';
+      else if (data[0] === 0xff && data[1] === 0xd8 && data[2] === 0xff) ext = 'jpg';
+      else if (['GIF87a', 'GIF89a'].includes(ascii(data.slice(0, 6)))) ext = 'gif';
+      else if (ascii(data.slice(0, 4)) === 'RIFF' && ascii(data.slice(8, 12)) === 'WEBP') ext = 'webp';
+      if (!ext) throw Error('PNG, JPEG, GIF, WebP 이미지 파일만 지원합니다.');
+      const path = `images/${task.id}/${crypto.randomUUID()}.${ext}`;
+      this.files.set(path, data); return { file: path, caption: file.name || '붙여넣은 이미지' };
+    }
+    async payload() {
+      this.assertWritable();
+      const changes = [];
+      for (const [path, data] of this.changed()) {
+        const old = this.baseline.get(path);
+        changes.push({ path, content: b64(data), baseHash: old ? await sha(old) : null });
+      }
+      return { changes };
+    }
+    saved() { this.baseline = new Map(this.files); }
+  }
+  async function sha(data) { return [...new Uint8Array(await crypto.subtle.digest('SHA-256', data))].map(b => b.toString(16).padStart(2, '0')).join(''); }
+  async function fileHandle(root, path, create = false) {
+    C.safePath(path); const parts = path.split('/'); let directory = root;
+    for (const name of parts.slice(0, -1)) directory = await directory.getDirectoryHandle(name, { create });
+    return directory.getFileHandle(parts.at(-1), { create });
+  }
+  async function readDirectory(root, path) { const handle = await fileHandle(root, path); return new Uint8Array(await (await handle.getFile()).arrayBuffer()); }
+  async function resolveDataDirectory(selected) {
+    const candidates = [async () => selected, async () => (await selected.getDirectoryHandle('web')).getDirectoryHandle('data'), async () => selected.getDirectoryHandle('data')];
+    for (const candidate of candidates) {
+      try { const root = await candidate(); const idx = JSON.parse(C.text(await readDirectory(root, 'index.json'))); if (idx.schemaVersion === 1 && Array.isArray(idx.tasks)) return root; } catch (_) { /* Try next known workspace shape. */ }
+    }
+    throw Error('선택한 폴더에서 data/index.json을 찾을 수 없습니다. 저장소 루트 또는 web/data 폴더를 선택하세요.');
+  }
+  async function saveDirectory(ws) {
+    ws.assertWritable(); const changes = ws.changed(); if (!ws.directory) throw Error('먼저 작업 폴더를 열어주세요.');
+    // Preflight all files before any write, and recheck each file immediately before writing.
+    async function verify(path) { let current = null; try { current = await readDirectory(ws.directory, path); } catch (e) { if (e.name !== 'NotFoundError') throw e; } if (!C.equal(current, ws.baseline.get(path) ?? null) && !C.equal(current, ws.files.get(path))) throw Error(`${path}: 외부에서 변경된 파일입니다. 다시 열어 변경을 확인하세요.`); }
+    for (const [path] of changes) await verify(path);
+    for (const [path, data] of [...changes].sort(([a], [b]) => (a === 'index.json') - (b === 'index.json'))) {
+      await verify(path); const handle = await fileHandle(ws.directory, path, true); const writer = await handle.createWritable();
+      try { await writer.write(data); await writer.close(); ws.baseline.set(path, data); } catch (e) { try { await writer.abort(); } catch (_) {} throw e; }
+    }
+  }
+  class Helper {
+    constructor(port, token) {
+      const number = Number(port); if (!Number.isInteger(number) || number < 1024 || number > 65535) throw Error('포트 번호가 올바르지 않습니다.');
+      this.base = `http://127.0.0.1:${number}`; this.token = token;
+    }
+    async request(path, body = null) {
+      const controller = new AbortController(); const timer = setTimeout(() => controller.abort(), path === '/api/publish' ? 150000 : 30000);
+      try {
+        const response = await fetch(this.base + path, { method: body === null ? 'GET' : 'POST', headers: { 'X-Dashboard-Token': this.token, ...(body !== null ? { 'Content-Type': 'application/json' } : {}) }, ...(body !== null ? { body: JSON.stringify(body) } : {}), signal: controller.signal });
+        const value = await response.json(); if (!response.ok) throw Error(value.error || '로컬 도구 요청 실패'); return value;
+      } finally { clearTimeout(timer); }
+    }
+  }
+  scope.DHDStorage = { Workspace, sha, readDirectory, resolveDataDirectory, saveDirectory, Helper, b64, unb64 };
+})(globalThis);
+</script><script>(async function () {
+  'use strict';
+  const C = window.DHD, S = window.DHDStorage, config = window.DHD_CONFIG;
+  let ws = new S.Workspace();
+  const ui = { scope: null, query: '', category: 'all', status: 'all', archived: false, collapsed: new Set(), view: 'tree', selected: null, draft: null, draftDirty: false, tab: 'overview', preview: false, busy: false, imageUrls: [], addedImages: new Set(), review: null, lastExport: null };
+  const $ = selector => document.querySelector(selector);
+  function el(tag, attrs = {}, ...children) {
+    const node = document.createElement(tag);
+    for (const [key, value] of Object.entries(attrs)) {
+      if (key === 'class') node.className = value;
+      else if (key === 'text') node.textContent = value ?? '';
+      else if (key.startsWith('on') && typeof value === 'function') node.addEventListener(key.slice(2), value);
+      else if (value !== false && value != null) node.setAttribute(key, value === true ? '' : String(value));
+    }
+    for (const child of children.flat()) if (child != null) node.append(child.nodeType ? child : document.createTextNode(String(child)));
+    return node;
+  }
+  function message(text, error = false) { $('#notice').textContent = text; $('#notice').classList.toggle('error', error); }
+  async function guard(fn) { try { return await fn(); } catch (e) { message(e.message, true); } }
+  function draftChanged() { ui.draftDirty = true; $('#draftState').textContent = '적용 전 변경 있음'; $('#taskError').textContent = ''; }
+  function archivedIds() { const hidden = new Set(); for (const t of ws.tasks) if (t.archived) { hidden.add(t.id); for (const id of C.descendants(ws.tasks, t.id)) hidden.add(id); } return hidden; }
+  function orderedRows() {
+    const scopeIds = ui.scope ? new Set([ui.scope, ...C.descendants(ws.tasks, ui.scope)]) : new Set(ws.tasks.map(t => t.id));
+    const hidden = archivedIds();
+    const direct = ws.tasks.filter(t => scopeIds.has(t.id) && (ui.archived || !hidden.has(t.id)) && (ui.category === 'all' || t.category === ui.category) && (ui.status === 'all' || t.status === ui.status) && (!ui.query || `${t.title} ${t.summary} ${(t.tags || []).join(' ')}`.toLowerCase().includes(ui.query)));
+    const matches = new Set(direct.map(t => t.id)), included = new Set(matches), map = new Map(ws.tasks.map(t => [t.id, t]));
+    for (const t of direct) { let p = t.parentId; const seen = new Set(); while (p && map.has(p) && !seen.has(p)) { seen.add(p); included.add(p); p = map.get(p).parentId; } }
+    const rows = [], visited = new Set(), filtering = ui.query || ui.status !== 'all' || ui.category !== 'all';
+    function visit(t, depth) { if (visited.has(t.id) || !included.has(t.id)) return; visited.add(t.id); rows.push({ t, depth, match: matches.has(t.id) }); if (!ui.collapsed.has(t.id) || filtering) for (const ch of C.children(ws.tasks, t.id)) visit(ch, depth + 1); }
+    if (ui.scope && map.has(ui.scope)) visit(map.get(ui.scope), 0); else for (const t of C.children(ws.tasks)) visit(t, 0);
+    for (const t of direct) if (!visited.has(t.id) && (!t.parentId || !map.has(t.parentId))) visit(t, 0);
+    return rows;
+  }
+  function renderNav() {
+    const hidden = archivedIds(); $('#sidebarCount').textContent = ws.tasks.filter(t => !hidden.has(t.id)).length;
+    $('#allTasks').classList.toggle('active', !ui.scope);
+    $('#projectNav').replaceChildren(...C.children(ws.tasks).filter(t => !t.archived).map((t, i) => {
+      const button = el('button', { class: 'nav' + (ui.scope === t.id ? ' active' : ''), onclick: () => { ui.scope = t.id; render(); } }, el('i', { class: 'project-dot' }), el('span', { text: t.title }));
+      button.firstChild.style.background = ['#a899ed', '#85b4e8', '#76bcac'][i % 3]; return button;
+    }));
+    const title = ws.tasks.find(t => t.id === ui.scope)?.title;
+    $('#scopeTitle').textContent = title || '전체 과제'; $('#pageTitle').textContent = title || '진행 중인 일, 한눈에.';
+    $('#sourceBadge').textContent = { sample: '○ 로컬 샘플 · 폴더를 열어주세요', pages: '● GitHub Pages', directory: '● 로컬 파일 연결됨', helper: '● Git 저장소 연결됨' }[ws.source];
+  }
+  function renderKpis() {
+    const hidden = archivedIds(), scopeIds = ui.scope ? new Set([ui.scope, ...C.descendants(ws.tasks, ui.scope)]) : null;
+    const active = ws.tasks.filter(t => !hidden.has(t.id) && (!scopeIds || scopeIds.has(t.id)));
+    const roots = active.filter(t => !t.parentId), leaves = active.filter(t => !active.some(x => x.parentId === t.id));
+    const total = leaves.length ? Math.round(leaves.reduce((sum, t) => sum + t.progress, 0) / leaves.length) : 0;
+    const stats = [['메인 과제', roots.length, `하위 작업 ${active.length - roots.length}개`, '▦'], ['진행 중', active.filter(t => t.status === 'in_progress').length, '현재 집중하고 있는 작업', '↗'], ['완료한 작업', active.filter(t => t.status === 'completed').length, `전체 ${active.length}개 작업 중`, '✓'], ['전체 진행률', `${total}%`, '말단 작업 기준 평균', '◔']];
+    $('#kpis').replaceChildren(...stats.map(([label, value, detail, icon]) => el('article', { class: 'kpi' }, el('div', { class: 'kpi-top' }, label, el('span', { class: 'kpi-icon', text: icon })), el('strong', { text: value }), el('small', { text: detail }))));
+  }
+  function renderTree(rows) {
+    const header = el('div', { class: 'task-row header' }, el('span', { text: '과제 / 작업' }), el('span', { text: '상태' }), el('span', { text: '진행률' }), el('span', { text: '목표일' }), el('span', { text: '작업' }));
+    const nodes = rows.map(({ t, depth }) => {
+      const kids = C.children(ws.tasks, t.id), pct = C.progress(ws.tasks, t);
+      const select = el('select', { class: `row-status status-${t.status}`, 'aria-label': `${t.title} 상태`, onchange: e => guard(() => { const changes = { status: e.target.value }; if (changes.status === 'completed') { changes.progress = 100; changes.actualEndDate = C.today() < t.startDate ? t.startDate : C.today(); } else if (t.status === 'completed') changes.actualEndDate = null; ws.record(t.id, changes); render(); }) }, ...Object.entries(C.statuses).map(([v, label]) => el('option', { value: v, selected: v === t.status, text: label })));
+      const progress = el('div', { class: 'row-progress' }, el('div', { class: 'progress-track', role: 'progressbar', 'aria-label': `${t.title} 진행률`, 'aria-valuenow': pct, 'aria-valuemin': 0, 'aria-valuemax': 100 }, el('div', { class: 'progress-fill' })), el('span', { text: `${pct}%` })); progress.querySelector('.progress-fill').style.width = pct + '%';
+      const row = el('div', { class: 'task-row' + (!depth ? ' root-row' : '') + (t.archived ? ' archived' : ''), 'data-id': t.id },
+        el('div', { class: 'task-name' }, el('span', { class: 'drag-handle', draggable: 'true', title: '드래그하여 이동', 'aria-hidden': 'true' }, '⠿'), el('button', { class: 'fold', 'aria-label': `${t.title} ${ui.collapsed.has(t.id) ? '펼치기' : '접기'}`, 'aria-expanded': !ui.collapsed.has(t.id), disabled: !kids.length, onclick: () => { ui.collapsed.has(t.id) ? ui.collapsed.delete(t.id) : ui.collapsed.add(t.id); renderTree(orderedRows()); } }, kids.length ? (ui.collapsed.has(t.id) ? '▸' : '▾') : '·'), el('button', { class: 'task-open', onclick: () => openTask(t.id) }, t.title), kids.length ? el('span', { class: 'child-count', text: kids.length }) : null), select, progress, el('time', { class: 'row-date', text: t.targetEndDate || '미정' }), el('div', { class: 'row-actions' }, el('button', { title: '위로 이동', 'aria-label': `${t.title} 위로 이동`, onclick: () => stepMove(t.id, -1) }, '↑'), el('button', { title: '아래로 이동', 'aria-label': `${t.title} 아래로 이동`, onclick: () => stepMove(t.id, 1) }, '↓'), el('button', { title: '하위 작업 추가', 'aria-label': `${t.title} 하위 작업 추가`, onclick: () => addTask(t.id) }, '＋')));
+      row.style.setProperty('--depth', Math.min(depth, 12));
+      row.querySelector('.drag-handle').addEventListener('dragstart', e => { e.dataTransfer.setData('text/plain', t.id); e.dataTransfer.effectAllowed = 'move'; });
+      row.addEventListener('dragover', e => { if (ui.query || ui.category !== 'all' || ui.status !== 'all') return; e.preventDefault(); const y = (e.clientY - row.getBoundingClientRect().top) / row.getBoundingClientRect().height; row.classList.remove('drop-before', 'drop-after', 'drop-inside'); row.dataset.drop = y < .25 ? 'before' : y > .75 ? 'after' : 'inside'; row.classList.add('drop-' + row.dataset.drop); });
+      row.addEventListener('dragleave', () => row.classList.remove('drop-before', 'drop-after', 'drop-inside'));
+      row.addEventListener('drop', e => { e.preventDefault(); const id = e.dataTransfer.getData('text/plain'); if (!ws.tasks.some(x => x.id === id) || id === t.id) return; guard(() => { const siblings = C.children(ws.tasks, t.parentId); const before = row.dataset.drop === 'before' ? t.id : siblings[siblings.findIndex(x => x.id === t.id) + 1]?.id; ws.relocate(id, row.dataset.drop === 'inside' ? t.id : t.parentId, row.dataset.drop === 'inside' ? null : before); ui.collapsed.delete(t.id); render(); }); });
+      return row;
+    });
+    $('#tree').replaceChildren(header, ...(nodes.length ? nodes : [el('div', { class: 'empty', text: '조건에 맞는 과제가 없습니다.' })]));
+    $('#resultCount').textContent = `${rows.length}개 표시`;
+  }
+  function stepMove(id, delta) { guard(() => { const t = ws.tasks.find(t => t.id === id), siblings = C.children(ws.tasks, t.parentId); const idx = siblings.findIndex(t => t.id === id); if (idx + delta < 0 || idx + delta >= siblings.length) return; const before = delta < 0 ? siblings[idx - 1]?.id : siblings[idx + 2]?.id; ws.relocate(id, t.parentId, before); render(); }); }
+  function renderGantt(rows) {
+    if (!rows.length) return $('#gantt').replaceChildren(el('div', { class: 'empty', text: '표시할 일정이 없습니다.' }));
+    const range = C.timeline(rows.map(r => r.t));
+    const pos = date => (C.day(date) - range.start) / range.days * 100;
+    const scale = el('div', { class: 'gantt-scale' });
+    for (const m of range.months) { const label = el('span', { class: 'gantt-month', text: m.label }); label.style.left = `${(m.start - range.start) / range.days * 100}%`; label.style.width = `${m.days / range.days * 100}%`; scale.append(label); }
+    const table = el('div', { class: 'gantt-table' }, el('div', { class: 'gantt-row' }, el('div', { class: 'gantt-label', text: '과제 · ● 마일스톤  ◆ 릴리즈' }), scale));
+    for (const { t, depth } of rows) {
+      const lane = el('div', { class: 'gantt-lane' });
+      for (const m of range.months) { const line = el('span', { class: 'gantt-grid' }); line.style.left = (m.start - range.start) / range.days * 100 + '%'; lane.append(line); }
+      const end = C.endDate(t);
+      if (end) { const bar = el('div', { class: 'gantt-bar' + (!depth ? ' root' : ''), title: `${t.title}: ${t.startDate} ~ ${end}` }, el('div', { class: 'progress-fill' })); bar.style.left = pos(t.startDate) + '%'; bar.style.width = Math.max(.3, (C.day(end) - C.day(t.startDate) + 1) / range.days * 100) + '%'; bar.firstChild.style.width = C.progress(ws.tasks, t) + '%'; lane.append(bar); } else lane.append(el('span', { class: 'no-end', text: '종료일 미정' }));
+      for (const item of [...t.milestones.map(m => ({ date: m.date, title: m.title, type: '', symbol: '●' })), ...t.releases.map(r => ({ date: r.releaseDate, title: `v${r.version} ${r.title || ''}`, type: ' release', symbol: '◆' }))]) { if (C.day(item.date) === null) continue; const marker = el('span', { class: 'gantt-marker' + item.type, title: `${item.date} ${item.title}`, text: item.symbol }); marker.style.left = pos(item.date) + '%'; lane.append(marker); }
+      const now = pos(C.today()); if (now >= 0 && now <= 100) { const line = el('span', { class: 'today-line', title: '오늘' }); line.style.left = now + '%'; lane.append(line); }
+      const label = el('button', { class: 'gantt-label task-open', text: t.title, onclick: () => openTask(t.id) }); label.style.setProperty('--depth', depth); table.append(el('div', { class: 'gantt-row' }, label, lane));
+    }
+    $('#gantt').replaceChildren(table);
+  }
+  function renderBottom() {
+    const hidden = archivedIds(); const active = ws.tasks.filter(t => !hidden.has(t.id));
+    const upcoming = active.flatMap(t => t.milestones.map(m => ({ ...m, task: t.title, taskId: t.id }))).filter(m => m.status !== 'completed').sort((a, b) => (a.date || '').localeCompare(b.date || '')).slice(0, 4);
+    const logs = active.flatMap(t => t.logs.map(l => ({ ...l, task: t.title, taskId: t.id }))).sort((a, b) => (b.at || '').localeCompare(a.at || '')).slice(0, 4);
+    const renderItems = (root, list, icon) => $(root).replaceChildren(...(list.length ? list.map(item => el('div', { class: 'activity-item' }, el('span', { class: 'activity-icon', text: icon }), el('div', {}, el('button', { class: 'task-open', text: item.title || '개발 기록', onclick: () => openTask(item.taskId) }), el('small', { text: item.task })), el('time', { text: (item.date || item.at || '').slice(5, 10).replace('-', '.') }))) : [el('div', { class: 'empty', text: '아직 기록이 없습니다.' })]));
+    renderItems('#upcoming', upcoming, '◇'); renderItems('#activity', logs, '↳');
+  }
+  function updateSaveState() {
+    $('main').inert = ui.busy; $('.sidebar').inert = ui.busy;
+    const n = ws.changed().size; $('#saveState').textContent = ui.busy ? '처리 중…' : n ? `저장할 파일 ${n}개` : '변경 없음'; $('#saveState').classList.toggle('dirty', n > 0);
+    $('#saveButton').disabled = ui.busy || !n || !(ws.directory || ws.helper) || ws.errors.length > 0;
+    $('#exportButton').disabled = ui.busy || !n || ws.errors.length > 0;
+    $('#publishButton').disabled = ui.busy || ws.errors.length > 0;
+    $('#errorsPanel').hidden = !ws.errors.length; $('#errors').replaceChildren(...ws.errors.map(error => el('li', { text: error })));
+  }
+  function render() { renderNav(); renderKpis(); const rows = orderedRows(); renderTree(rows); renderGantt(rows); renderBottom(); updateSaveState(); }
+  function field(label, name, value, type = 'text', options = null, target = ui.draft.task) {
+    const input = options ? el('select', { name }, ...options.map(([v, text]) => el('option', { value: v, selected: String(v) === String(value ?? ''), text }))) : type === 'textarea' ? el('textarea', { name, rows: 4 }) : el('input', { name, type });
+    input.value = value ?? '';
+    input.addEventListener('input', () => { target[name] = type === 'number' ? Number(input.value) : ['targetEndDate', 'actualEndDate', 'parentId'].includes(name) && !input.value ? null : input.value; draftChanged(); });
+    return el('label', { class: 'form-field' }, el('span', { text: label }), input);
+  }
+  function openTask(id) {
+    const task = ws.tasks.find(t => t.id === id); if (!task) return;
+    if ($('#taskDialog').open && !closeDraft()) return;
+    ui.selected = id; ui.draft = { task: C.clone(task), ...C.parseBody(ws.body(task)) }; ui.draftDirty = false; ui.tab = 'overview'; ui.preview = false; ui.addedImages.clear();
+    $('#taskTitle').textContent = task.title; $('#taskId').textContent = task.id; $('#draftState').textContent = ''; $('#taskError').textContent = ''; renderDetail(); $('#taskDialog').showModal();
+  }
+  function closeDraft() {
+    if (ui.draftDirty && !confirm('아직 적용하지 않은 입력 내용이 있습니다. 편집 창을 닫을까요?')) return false;
+    for (const path of ui.addedImages) ws.files.delete(path);
+    ui.addedImages.clear(); ui.draftDirty = false; ui.draft = null; revokeImages(); $('#taskDialog').close(); updateSaveState(); return true;
+  }
+  function applyDraft() {
+    if (!ui.draft) return true;
+    try {
+      const { task, description, checklist } = ui.draft;
+      if (task.status === 'completed') { task.progress = 100; task.actualEndDate ||= C.today() < task.startDate ? task.startDate : C.today(); }
+      C.validateTask(task);
+      for (const group of ['logs', 'decisions', 'milestones', 'releases']) for (const item of task[group]) {
+        if (typeof item.title !== 'string' || !item.title.trim()) throw Error('기록의 제목을 입력해 주세요.');
+        if (group === 'releases' && !item.version?.trim()) throw Error('릴리즈 버전을 입력해 주세요.');
+      }
+      // Persist image references in MD, while preserving unrecognized sections.
+      let body = C.writeBody(ws.body(task), description, checklist);
+      const images = `<!-- dhd:images -->\n${task.images.map(i => `![${(i.caption || '이미지').replace(/[\[\]\n\r]/g, '')}](../${i.file})`).join('\n\n')}\n<!-- /dhd:images -->`;
+      const regex = /<!-- dhd:images -->\r?\n[\s\S]*?\r?\n<!-- \/dhd:images -->/;
+      body = regex.test(body) ? body.replace(regex, () => images) : body.trimEnd() + '\n\n' + images + '\n';
+      task.bodyFile ||= `notes/${task.id}.md`;
+      ws.record(task.id, task, { description, checklist }); ws.files.set(task.bodyFile, C.bytes(body));
+      ui.draft.task = C.clone(ws.tasks.find(t => t.id === task.id)); ui.draftDirty = false; ui.addedImages.clear(); $('#draftState').textContent = '적용됨 · 파일 저장 필요'; $('#taskError').textContent = ''; $('#taskTitle').textContent = task.title; render(); return true;
+    } catch (e) { $('#taskError').textContent = e.message; return false; }
+  }
+  function renderOverview() {
+    const task = ui.draft.task, excluded = new Set([task.id, ...C.descendants(ws.tasks, task.id)]);
+    const parentOptions = [['', '메인 과제 (상위 없음)'], ...ws.tasks.filter(t => !excluded.has(t.id) && !t.archived).map(t => [t.id, t.title])];
+    const title = field('과제명', 'title', task.title); title.classList.add('wide'); title.querySelector('input').maxLength = 300; title.querySelector('input').required = true;
+    const progress = field(C.children(ws.tasks, task.id).length ? '직접 입력 진행률 (화면에서는 하위 작업 평균 표시)' : '진행률 (%)', 'progress', task.progress, 'number'); progress.querySelector('input').min = 0; progress.querySelector('input').max = 100;
+    const summary = field('한 줄 요약', 'summary', task.summary, 'textarea'); summary.classList.add('wide');
+    const owners = field('담당자 (쉼표로 구분)', 'ownerInput', task.owners.join(', '), 'text', null, {}); owners.querySelector('input').addEventListener('input', e => task.owners = e.target.value.split(',').map(v => v.trim()).filter(Boolean));
+    const tags = field('태그 (쉼표로 구분)', 'tagInput', task.tags.join(', '), 'text', null, {}); tags.querySelector('input').addEventListener('input', e => task.tags = e.target.value.split(',').map(v => v.trim()).filter(Boolean));
+    return el('div', { class: 'form-grid' }, title, field('상위 과제', 'parentId', task.parentId, 'text', parentOptions), field('분류', 'category', task.category, 'text', Object.entries(C.categories)), field('상태', 'status', task.status, 'text', Object.entries(C.statuses)), progress, field('시작일', 'startDate', task.startDate, 'date'), field('목표 종료일 (선택)', 'targetEndDate', task.targetEndDate, 'date'), field('실제 종료일 (선택)', 'actualEndDate', task.actualEndDate, 'date'), owners, tags, summary);
+  }
+  function revokeImages() { ui.imageUrls.forEach(url => URL.revokeObjectURL(url)); ui.imageUrls = []; }
+  function imageUrl(img) { const data = ws.files.get(img.file); if (!data) return ''; const ext = img.file.split('.').at(-1); const url = URL.createObjectURL(new Blob([data], { type: ext === 'jpg' || ext === 'jpeg' ? 'image/jpeg' : `image/${ext}` })); ui.imageUrls.push(url); return url; }
+  function previewBody() {
+    const { task, description, checklist } = ui.draft;
+    const node = el('article', { class: 'preview' }, el('h2', { text: task.title }), el('p', { text: task.summary }), el('h3', { text: '상세 내용' }), el('p', { text: description }));
+    if (checklist) { node.append(el('h3', { text: '완료 기준' })); for (const line of checklist.split('\n').filter(Boolean)) node.append(el('p', { text: line.replace(/^- \[x\] /i, '☑ ').replace(/^- \[ \] /, '☐ ') })); }
+    for (const img of task.images) node.append(el('figure', {}, el('img', { src: imageUrl(img), alt: img.caption || '과제 이미지' }), el('figcaption', { text: img.caption })));
+    return node;
+  }
+  function renderBody() {
+    revokeImages();
+    const wrapper = el('div', { class: 'body-editor' }, el('div', { class: 'body-toolbar' }, el('p', { text: '폼에 내용을 입력하세요. 문서 파일은 자동으로 만들어집니다.' }), el('button', { type: 'button', onclick: () => { ui.preview = !ui.preview; renderDetail(); } }, ui.preview ? '입력 폼으로' : '문서 미리보기')));
+    if (ui.preview) { wrapper.append(previewBody()); return wrapper; }
+    wrapper.append(field('상세 설명 / 작업 내용', 'description', ui.draft.description, 'textarea', null, ui.draft));
+    const list = el('div');
+    function drawChecklist() {
+      const items = ui.draft.checklist ? ui.draft.checklist.split('\n').filter(Boolean).map(line => ({ checked: /^- \[x\]/i.test(line), text: line.replace(/^- \[[ xX]\]\s?/, '') })) : [];
+      const sync = () => { ui.draft.checklist = items.map(i => `- [${i.checked ? 'x' : ' '}] ${i.text}`).join('\n'); draftChanged(); };
+      list.replaceChildren(el('div', { class: 'collection-head' }, el('h3', { text: '완료 기준 / 체크리스트' }), el('button', { type: 'button', text: '＋ 항목', onclick: () => { items.push({ checked: false, text: '새 확인 항목' }); sync(); drawChecklist(); } })));
+      items.forEach((item, i) => list.append(el('div', { class: 'checklist-item' }, el('input', { type: 'checkbox', checked: item.checked, 'aria-label': `${item.text} 완료`, onchange: e => { item.checked = e.target.checked; sync(); } }), el('input', { type: 'text', value: item.text, 'aria-label': '확인 항목 내용', oninput: e => { item.text = e.target.value; sync(); } }), el('button', { type: 'button', 'aria-label': '확인 항목 제거', onclick: () => { items.splice(i, 1); sync(); drawChecklist(); } }, '×'))));
+    }
+    drawChecklist(); wrapper.append(list);
+    const input = el('input', { type: 'file', accept: 'image/png,image/jpeg,image/webp,image/gif', multiple: true, hidden: true });
+    const drop = el('div', { class: 'image-drop', tabindex: 0, 'aria-label': '이미지 붙여넣기 또는 파일 놓기' }, '이미지를 끌어 놓거나 Ctrl+V로 붙여넣으세요.', el('br'), el('button', { type: 'button', text: '이미지 선택', onclick: () => input.click() }), el('small', { text: 'PNG · JPG · WebP · GIF / 장당 8MB' }), input);
+    async function addImages(files) { try { for (const file of files) { const img = await ws.image(ui.draft.task, file); ui.addedImages.add(img.file); ui.draft.task.images.push(img); draftChanged(); } renderDetail(); } catch (e) { $('#taskError').textContent = e.message; } }
+    input.addEventListener('change', () => addImages([...input.files]));
+    drop.addEventListener('dragover', e => { e.preventDefault(); drop.classList.add('dragging'); }); drop.addEventListener('dragleave', () => drop.classList.remove('dragging'));
+    drop.addEventListener('drop', e => { e.preventDefault(); addImages([...e.dataTransfer.files]); });
+    wrapper.append(drop, el('div', { class: 'image-grid' }, ...ui.draft.task.images.map((img, i) => {
+      const caption = el('input', { value: img.caption || '', 'aria-label': '이미지 설명', oninput: e => { img.caption = e.target.value; draftChanged(); } });
+      return el('div', { class: 'image-card' }, el('img', { src: imageUrl(img), alt: img.caption || '이미지' }), caption, el('button', { type: 'button', text: '문서에서 제거', onclick: () => { ui.draft.task.images.splice(i, 1); if (ui.addedImages.has(img.file)) { ws.files.delete(img.file); ui.addedImages.delete(img.file); } draftChanged(); renderDetail(); } }));
+    })));
+    wrapper.addEventListener('paste', e => { const files = [...(e.clipboardData?.files || [])].filter(f => f.type.startsWith('image/')); if (files.length) { e.preventDefault(); addImages(files); } });
+    return wrapper;
+  }
+  const recordFields = {
+    logs: [['title', '제목'], ['at', '기록 일시 (시간대 포함)'], ['content', '작업 내용', 'textarea'], ['relatedRelease', '관련 릴리즈'], ['relatedMilestone', '관련 마일스톤']],
+    decisions: [['title', '제목'], ['date', '결정일', 'date'], ['decision', '결정 내용', 'textarea'], ['reason', '선택 이유', 'textarea'], ['impact', '영향 범위', 'textarea'], ['alternatives', '검토한 대안 (줄마다 하나)', 'array']],
+    milestones: [['title', '제목'], ['date', '목표일', 'date'], ['status', '상태', 'milestoneStatus'], ['description', '설명', 'textarea']],
+    releases: [['title', '제목'], ['version', '버전'], ['releaseDate', '릴리즈 날짜', 'date'], ['status', '상태', 'releaseStatus'], ['summary', '요약', 'textarea'], ['notes', '릴리즈 노트 (줄마다 하나)', 'array']]
+  };
+  function renderCollection(name) {
+    const items = ui.draft.task[name], group = el('div', {}, el('div', { class: 'collection-head' }, el('p', { text: `${items.length}개 기록` }), el('button', { type: 'button', text: '＋ 기록 추가', onclick: () => { const item = { id: name.toUpperCase() + '-' + crypto.randomUUID(), title: '새 기록' }; if (name === 'logs') { item.at = new Date().toISOString(); item.type = 'development'; item.tags = []; } else if (name === 'releases') { item.releaseDate = C.today(); item.status = 'planned'; item.version = '0.1.0'; item.notes = []; } else { item.date = C.today(); if (name === 'milestones') item.status = 'planned'; else item.alternatives = []; } items.push(item); draftChanged(); renderDetail(); } })));
+    for (const [index, item] of items.entries()) {
+      const fields = recordFields[name].map(([key, label, type = 'text']) => {
+        if (type === 'array') { const control = field(label, key, (item[key] || []).join('\n'), 'textarea', null, {}); control.querySelector('textarea').addEventListener('input', e => { item[key] = e.target.value.split('\n'); draftChanged(); }); return control; }
+        return field(label, key, item[key] || '', type === 'releaseStatus' || type === 'milestoneStatus' ? 'text' : type, type === 'releaseStatus' ? [['planned', '예정'], ['released', '배포 완료'], ['cancelled', '취소']] : type === 'milestoneStatus' ? [['planned', '예정'], ['in_progress', '진행 중'], ['completed', '완료']] : null, item);
+      });
+      group.append(el('details', { class: 'record', open: true }, el('summary', {}, el('span', { text: item.title || '새 기록' }), el('small', { text: item.date || item.releaseDate || (item.at || '').slice(0, 10) })), el('div', { class: 'form-grid' }, fields), el('button', { type: 'button', text: '기록 제거', onclick: () => { items.splice(index, 1); draftChanged(); renderDetail(); } })));
+    }
+    return group;
+  }
+  function renderHistory() {
+    const t = ui.draft.task;
+    const entries = [...(t.history || []), ...t.logs.map(l => ({ at: l.at, title: '개발 · ' + l.title })), ...t.decisions.map(d => ({ at: d.date, title: '결정 · ' + d.title })), ...t.milestones.map(m => ({ at: m.date, title: '마일스톤 · ' + m.title })), ...t.releases.map(r => ({ at: r.releaseDate, title: '릴리즈 · v' + r.version }))].sort((a, b) => (b.at || '').localeCompare(a.at || ''));
+    return el('div', {}, ...(entries.length ? entries.map(item => el('div', { class: 'history-item' }, el('time', { text: (item.at || '').replace('T', ' ').slice(0, 19) }), el('span', { text: item.title || item.action }))) : [el('div', { class: 'empty', text: '아직 변경 이력이 없습니다.' })]));
+  }
+  function renderDetail() {
+    $('#taskTabs').querySelectorAll('[data-tab]').forEach(button => button.setAttribute('aria-selected', button.dataset.tab === ui.tab));
+    $('#archiveTask').textContent = ui.draft.task.archived ? '보관 해제' : '보관하기';
+    $('#taskFields').replaceChildren(ui.tab === 'overview' ? renderOverview() : ui.tab === 'body' ? renderBody() : ui.tab === 'history' ? renderHistory() : renderCollection(ui.tab));
+  }
+  function addTask(parentId = null) { guard(() => { const t = ws.add(parentId); if (parentId) ui.collapsed.delete(parentId); ui.query = ''; $('#search').value = ''; render(); openTask(t.id); }); }
+  async function chooseFolder() {
+    if (!window.showDirectoryPicker) throw Error('이 브라우저에서는 폴더 직접 저장을 사용할 수 없습니다. Edge/Chrome 또는 Git 연결을 사용하세요.');
+    if ((ws.changed().size || ui.draftDirty) && !confirm('저장하지 않은 변경이 있습니다. 선택한 폴더의 데이터로 다시 열까요?')) return;
+    const selected = await window.showDirectoryPicker({ mode: 'readwrite' }); const directory = await S.resolveDataDirectory(selected);
+    const next = await new S.Workspace().load(path => S.readDirectory(directory, path), 'directory'); next.directory = directory; ws = next; ui.scope = null; render(); message(`작업 폴더를 열었습니다. ${ws.tasks.length}개 과제 · 저장 버튼으로 파일에 반영됩니다.`);
+  }
+  async function save() {
+    ui.busy = true; updateSaveState();
+    try { if (ws.helper) { await ws.helper.request('/api/save', await ws.payload()); ws.saved(); } else await S.saveDirectory(ws); message('로컬 파일에 저장했습니다. GitHub 반영은 아직 진행하지 않았습니다.'); }
+    finally { ui.busy = false; updateSaveState(); }
+  }
+  function exportZip() {
+    ws.assertWritable(); const files = new Map([...ws.changed()].map(([path, data]) => ['web/data/' + path, data]));
+    if (!files.size) return;
+    const blob = C.zip(files), url = URL.createObjectURL(blob), link = el('a', { href: url, download: `dashboard-changes-${C.today()}.zip` }); document.body.append(link); link.click(); link.remove(); setTimeout(() => URL.revokeObjectURL(url), 30000);
+    ui.lastExport = new Date(); message('변경 ZIP 다운로드를 요청했습니다. 압축을 저장소 루트에 풀고 push하세요. 파일 저장이 확인될 때까지 변경 표시는 유지됩니다.');
+  }
+  async function connect(e) {
+    e.preventDefault(); $('#connectionError').textContent = '';
+    try {
+      if (location.protocol !== 'file:' && !['localhost', '127.0.0.1'].includes(location.hostname)) throw Error('Git 자동 반영은 PC에서 HTML을 직접 열어 사용해 주세요.');
+      if (ws.changed().size && !confirm('저장되지 않은 변경이 있습니다. Git 저장소의 파일로 다시 열까요?')) return;
+      const helper = new S.Helper($('#helperPort').value, $('#helperToken').value.trim()); const snapshot = await helper.request('/api/snapshot');
+      const next = await new S.Workspace().load(async path => { if (!(path in snapshot.files)) throw Error('파일이 없습니다: ' + path); return S.unb64(snapshot.files[path]); }, 'helper');
+      next.helper = helper; ws = next; ui.scope = null; $('#helperToken').value = ''; $('#connectionDialog').close(); render(); message(`${snapshot.repository} 저장소에 연결했습니다. 이제 GitHub 반영 버튼을 사용할 수 있습니다.`);
+    } catch (e) { $('#connectionError').textContent = e.message; }
+  }
+  async function publishReview() {
+    if (!ws.helper) {
+      if (location.protocol === 'file:' || ['localhost', '127.0.0.1'].includes(location.hostname)) { $('#connectionDialog').showModal(); return; }
+      message('Pages에서 편집한 내용은 변경 ZIP으로 다운로드할 수 있습니다. GitHub 자동 반영은 로컬 HTML과 Git 연결 도구에서 지원합니다.'); return;
+    }
+    ui.busy = true; updateSaveState();
+    try {
+      const payload = await ws.payload(); const review = await ws.helper.request('/api/review', payload); ui.review = { ...review, payload };
+      $('#gitTarget').textContent = `${review.repository} · ${review.branch} → ${review.remote || '원격 미설정'}`;
+      $('#publishFiles').replaceChildren(...review.paths.map(path => el('li', { text: path }))); $('#gitDiff').textContent = review.diff || '새 파일 또는 변경 파일이 없습니다. 이전에 실패한 push를 재시도할 수 있습니다.';
+      $('#publishResult').textContent = review.warning || ''; $('#confirmPublish').disabled = !review.canPublish; $('#publishDialog').showModal();
+    } finally { ui.busy = false; updateSaveState(); }
+  }
+  async function publish(e) {
+    e.preventDefault(); if (!ui.review) return;
+    $('#confirmPublish').disabled = true; $('#publishResult').textContent = '파일 저장 → 커밋 → 푸시 중…'; ui.busy = true; updateSaveState();
+    try {
+      const result = await ws.helper.request('/api/publish', { ...ui.review.payload, reviewId: ui.review.reviewId, message: $('#commitMessage').value, confirm: true });
+      if (result.saved) ws.saved();
+      const text = result.pushed ? `GitHub 반영 완료${result.commit ? ' · ' + result.commit.slice(0, 7) : ''}. Pages 게시가 끝나면 새로고침하세요.` : `파일 저장${result.committed ? '·커밋' : ''} 완료. ${result.error || 'push를 완료하지 못했습니다.'}`;
+      $('#publishResult').textContent = text; message(text, !result.pushed); ui.review = null;
+    } catch (e) { $('#publishResult').textContent = '반영 실패: ' + e.message + ' · 창을 닫고 변경 확인부터 다시 시도해 주세요.'; }
+    finally { ui.busy = false; updateSaveState(); }
+  }
+  $('#allTasks').addEventListener('click', () => { ui.scope = null; render(); });
+  $('#sidebarAdd').addEventListener('click', () => addTask()); $('#newTaskButton').addEventListener('click', () => addTask());
+  $('#search').addEventListener('input', e => { ui.query = e.target.value.toLowerCase().trim(); const rows = orderedRows(); renderTree(rows); renderGantt(rows); });
+  for (const [id, key] of [['category', 'category'], ['status', 'status']]) $('#' + id).addEventListener('change', e => { ui[key] = e.target.value; render(); });
+  $('#showArchived').addEventListener('change', e => { ui.archived = e.target.checked; render(); });
+  $('#expandButton').addEventListener('click', () => { ui.collapsed.clear(); render(); });
+  for (const view of ['tree', 'gantt']) $('#' + view + 'View').addEventListener('click', () => { ui.view = view; $('#tree').hidden = view !== 'tree'; $('#gantt').hidden = view !== 'gantt'; for (const name of ['tree', 'gantt']) { $('#' + name + 'View').classList.toggle('active', name === view); $('#' + name + 'View').setAttribute('aria-pressed', name === view); } });
+  $('#taskTabs').addEventListener('click', e => { const tab = e.target.closest('[data-tab]'); if (tab) { ui.tab = tab.dataset.tab; renderDetail(); } });
+  $('#taskForm').addEventListener('submit', e => { e.preventDefault(); applyDraft(); });
+  $('#closeTask').addEventListener('click', closeDraft); $('#taskDialog').addEventListener('cancel', e => { e.preventDefault(); closeDraft(); });
+  $('#addChild').addEventListener('click', () => { if (!applyDraft()) return; const parentId = ui.selected; $('#taskDialog').close(); ui.draft = null; addTask(parentId); });
+  $('#archiveTask').addEventListener('click', () => { ui.draft.task.archived = !ui.draft.task.archived; draftChanged(); renderDetail(); });
+  $('#folderButton').addEventListener('click', () => guard(chooseFolder)); $('#saveButton').addEventListener('click', () => guard(save)); $('#exportButton').addEventListener('click', () => guard(exportZip));
+  $('#mobileFolderButton').addEventListener('click', () => guard(chooseFolder));
+  $('#mobileAllTasks').addEventListener('click', () => { ui.scope = null; render(); });
+  $('#helperButton').addEventListener('click', () => $('#connectionDialog').showModal()); $('#connectionForm').addEventListener('submit', connect);
+  $('#publishButton').addEventListener('click', () => guard(publishReview)); $('#publishForm').addEventListener('submit', publish);
+  document.querySelectorAll('[data-close]').forEach(button => button.addEventListener('click', () => { if (!ui.busy) $('#' + button.dataset.close).close(); }));
+  $('#publishDialog').addEventListener('cancel', e => { if (ui.busy) e.preventDefault(); });
+  window.addEventListener('beforeunload', e => { if (ui.draftDirty || ws.changed().size || ui.busy) { e.preventDefault(); e.returnValue = ''; } });
+  try {
+    if (location.protocol === 'file:') {
+      const bootstrap = JSON.parse($('#bootstrap').textContent); await ws.load(async path => C.bytes(bootstrap[path]), 'sample');
+      message('로컬 HTML로 실행 중입니다. 샘플을 둘러보거나 작업 폴더를 열어 실제 파일을 수정하세요. Git 자동 반영은 ‘Git 연결 설정’을 이용하세요.');
+    } else {
+      const base = new URL(config.dataBase, document.baseURI);
+      await ws.load(async path => { C.safePath(path); const response = await fetch(new URL(path, base), { cache: 'no-store' }); if (!response.ok) throw Error(`${path}: HTTP ${response.status}`); return new Uint8Array(await response.arrayBuffer()); }, 'pages');
+      message('파일 기반 작업 공간입니다. 화면에서 편집 후 변경 ZIP을 내려받아 저장소에 반영하세요.');
+    }
+  } catch (e) { ws.errors.push(e.message); message('데이터를 열지 못했습니다: ' + e.message, true); }
+  render();
+  // Diagnostics expose no credentials or mutating application state.
+  window.DHD_DIAGNOSTICS = () => ({ taskCount: ws.tasks.length, errorCount: ws.errors.length, changedFiles: ws.changed().size, source: ws.source, roots: C.children(ws.tasks).length });
+})();
+</script>
+</body>
+</html>

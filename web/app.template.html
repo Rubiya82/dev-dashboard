@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <meta name="referrer" content="no-referrer">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Crect width='40' height='40' rx='10' fill='%237c8cff'/%3E%3Cpath d='M10 12h8v8h-8zm12 0h8v8h-8zM10 24h8v5h-8zm12 0h8v5h-8z' fill='white'/%3E%3C/svg%3E">
+  <title>개발 작업실 · Development Workspace</title>
+  <style>/*__STYLES__*/</style>
+</head>
+<body>
+  <a class="skip" href="#main">본문으로 이동</a>
+  <aside class="sidebar">
+    <div class="brand"><span class="brand-icon">▦</span><div>개발 작업실<small>DEVELOPMENT WORKSPACE</small></div></div>
+    <div class="workspace-label">WORKSPACE</div>
+    <button class="nav active" id="allTasks">▤ <span>전체 과제</span><b id="sidebarCount">0</b></button>
+    <div class="workspace-label project-label">메인 과제 <button id="sidebarAdd" title="메인 과제 추가" aria-label="메인 과제 추가">＋</button></div>
+    <nav id="projectNav" aria-label="메인 과제"></nav>
+    <div class="sidebar-bottom"><div id="sourceBadge" class="source-badge">○ 불러오는 중</div><button id="folderButton">▱ 작업 폴더 열기</button><button id="helperButton">⇄ Git 연결 설정</button><p>기록은 파일로,<br>작업은 한곳에서.</p><small>LOCAL + GITHUB PAGES</small></div>
+  </aside>
+  <main id="main">
+    <header class="topbar"><div class="breadcrumb">내 작업 공간 <span>/</span> <strong id="scopeTitle">전체 과제</strong></div><div class="header-actions"><span id="saveState">불러오는 중</span><button id="saveButton">로컬 저장</button><button id="exportButton">변경 ZIP</button><button id="publishButton" class="primary">↑ GitHub 반영</button></div></header>
+    <div class="content">
+      <div class="page-heading"><div><div class="eyebrow">MAKE PROGRESS, KEEP THE STORY.</div><h1 id="pageTitle">진행 중인 일, 한눈에.</h1><p>과제를 나누고, 일정을 맞추고, 개발의 흐름을 기록하세요.</p></div><button id="newTaskButton" class="primary">＋ 새 메인 과제</button></div>
+      <div class="mobile-tools"><button id="mobileAllTasks">전체 과제</button><button id="mobileFolderButton">작업 폴더 열기</button></div>
+      <div id="notice" class="notice" role="status" aria-live="polite"></div>
+      <section id="kpis" class="kpis" aria-label="작업 요약"></section>
+      <section class="work-panel">
+        <div class="viewbar"><div class="views"><button id="treeView" aria-pressed="true" class="active">☷ 과제 목록</button><button id="ganttView" aria-pressed="false">▥ 간트 일정</button></div><div class="viewbar-right"><span id="resultCount"></span><button id="expandButton" class="subtle">모두 펼치기</button></div></div>
+        <div class="filterbar"><label class="search"><span>⌕</span><input id="search" type="search" placeholder="과제명, 내용, 태그 검색" aria-label="과제 검색"></label><select id="category" aria-label="분류 필터"><option value="all">모든 분류</option><option value="assigned">수명 업무</option><option value="personal">개인 개발</option><option value="project">프로젝트</option></select><select id="status" aria-label="상태 필터"><option value="all">모든 상태</option><option value="planned">예정</option><option value="in_progress">진행 중</option><option value="blocked">차단됨</option><option value="on_hold">보류</option><option value="completed">완료</option><option value="cancelled">취소</option></select><label class="archive-toggle"><input type="checkbox" id="showArchived"> 보관함 포함</label></div>
+        <div id="tree" class="tree" aria-label="계층별 과제 목록"></div>
+        <div id="gantt" class="gantt" aria-label="간트 일정" hidden></div>
+        <div class="panel-footer"><span id="treeHint">⠿ 드래그로 순서 변경 · 과제 중앙에 놓으면 하위 작업으로 이동</span><span>진행률은 하위 작업에서 자동 집계</span></div>
+      </section>
+      <section class="bottom-grid"><div class="small-panel"><div class="section-title"><h2>다가오는 마일스톤</h2><span>UP NEXT</span></div><div id="upcoming"></div></div><div class="small-panel"><div class="section-title"><h2>최근 개발 기록</h2><span>ACTIVITY</span></div><div id="activity"></div></div></section>
+      <details id="errorsPanel" class="errors-panel" hidden><summary>불러오기 오류 · 정상 과제는 계속 조회할 수 있습니다</summary><ul id="errors"></ul></details>
+      <footer class="page-footer"><span>Development Workspace</span><span>샘플 일정과 진행률은 예시입니다.</span></footer>
+    </div>
+  </main>
+  <dialog id="taskDialog" aria-labelledby="taskTitle"><form id="taskForm">
+    <div class="dialog-head"><div><span class="eyebrow" id="taskId"></span><h2 id="taskTitle">과제 편집</h2></div><button type="button" class="icon-button" id="closeTask" aria-label="과제 편집 닫기">×</button></div>
+    <div id="taskTabs" class="tabs" role="tablist" aria-label="과제 편집 영역"><button type="button" data-tab="overview" role="tab" aria-selected="true">기본 정보</button><button type="button" data-tab="body" role="tab" aria-selected="false">상세 내용</button><button type="button" data-tab="logs" role="tab" aria-selected="false">개발 로그</button><button type="button" data-tab="decisions" role="tab" aria-selected="false">의사결정</button><button type="button" data-tab="milestones" role="tab" aria-selected="false">마일스톤</button><button type="button" data-tab="releases" role="tab" aria-selected="false">릴리즈</button><button type="button" data-tab="history" role="tab" aria-selected="false">변경 이력</button></div>
+    <div id="taskFields" class="dialog-body"></div><p id="taskError" class="form-error" role="alert"></p>
+    <div class="dialog-footer"><button type="button" id="addChild">＋ 하위 작업</button><button type="button" id="archiveTask" class="subtle">보관하기</button><span class="spacer"></span><span id="draftState" class="muted"></span><button type="submit" class="primary" id="applyTask">변경 적용</button></div>
+  </form></dialog>
+  <dialog id="connectionDialog" aria-labelledby="connectionTitle"><form id="connectionForm" class="connection-form"><div class="dialog-head"><h2 id="connectionTitle">로컬 Git 연결</h2><button type="button" class="icon-button" data-close="connectionDialog" aria-label="연결 설정 닫기">×</button></div><p>저장소의 <strong>Start-GitHub-Sync.cmd</strong>를 한 번 실행한 뒤, 표시된 연결 코드를 입력하세요. Git 인증은 PC의 기존 설정을 사용합니다.</p><label>포트<input id="helperPort" type="number" value="8765" min="1024" max="65535" required></label><label>이번 실행의 연결 코드<input id="helperToken" type="password" autocomplete="off" required></label><p class="muted">연결 코드는 현재 탭에서만 사용합니다. 연결 시 해당 저장소의 최신 파일을 불러옵니다.</p><p id="connectionError" class="form-error" role="alert"></p><div class="dialog-footer"><button type="submit" class="primary">연결하고 데이터 열기</button></div></form></dialog>
+  <dialog id="publishDialog" aria-labelledby="publishTitle"><form id="publishForm"><div class="dialog-head"><div><span class="eyebrow">SAVE → COMMIT → PUSH</span><h2 id="publishTitle">GitHub에 변경 반영</h2></div><button type="button" class="icon-button" data-close="publishDialog" aria-label="GitHub 반영 닫기">×</button></div><div class="dialog-body"><p id="gitTarget"></p><label class="form-field">커밋 메시지<input id="commitMessage" minlength="3" maxlength="120" required value="docs: update development tasks"></label><ul id="publishFiles" class="file-list"></ul><details open><summary>변경 내용 확인</summary><pre id="gitDiff"></pre></details><p id="publishResult" role="status"></p></div><div class="dialog-footer"><button id="confirmPublish" type="submit" class="primary">저장 · 커밋 · 푸시</button></div></form></dialog>
+  <script id="bootstrap" type="application/json">/*__BOOTSTRAP__*/</script>
+  <script>window.DHD_CONFIG = /*__CONFIG__*/;</script>
+  <script>/*__CORE__*/</script><script>/*__STORAGE__*/</script><script>/*__APP__*/</script>
+</body>
+</html>
