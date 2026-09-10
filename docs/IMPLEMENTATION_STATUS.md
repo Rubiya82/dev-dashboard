@@ -8,6 +8,10 @@
 
 ## 검증 완료
 
+- 공개 배포 완료: https://rubiya82.github.io/dev-dashboard/ (2026-09-10)
+- Pages main/(root) built, 공개 저장소 확인, 실제 사이트 과제 10개·간트·MD 미리보기·콘솔 오류 없음 확인.
+- 최초 공개 커밋은 24ea954. 그 이전 이력은 로컬 private-history-before-public 브랜치에만 보존하며 공개 원격에 push하지 않았습니다.
+
 - Python 통합 테스트 12개 통과: 임시 Git 저장소 + bare remote에 실제 저장·커밋·푸시 및 재시도.
 - 외부 파일 충돌, 오래된 diff 승인, 무관한 staged 파일 차단, unstaged 파일 제외, 경로/Origin/token 검사.
 - 브라우저 테스트 15개 통과: 실제 JS 데이터 처리, MD 보존, ZIP CRC, 이미지, 폴더 API 모형, 폼, XSS, 계층, 보관·복구, 드래그, 기록 폼.
